@@ -5,7 +5,6 @@ from datetime import date, datetime
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtWidgets import (
     QAbstractItemView,
-    QComboBox,
     QGridLayout,
     QGroupBox,
     QHBoxLayout,
@@ -15,10 +14,12 @@ from PyQt5.QtWidgets import (
     QTableWidgetItem,
     QVBoxLayout,
     QWidget,
+    QHeaderView,
 )
 
 from app.constants import LAWYER_SERVICE_TYPES
 from app.state import ServiceRow
+from app.ui.widgets.no_wheel_combo_box import NoWheelComboBox
 
 
 class ServicesBlock(QGroupBox):
@@ -41,9 +42,13 @@ class ServicesBlock(QGroupBox):
         self.table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.table.verticalHeader().setVisible(False)
         self.table.setAlternatingRowColors(False)
-        self.table.setColumnWidth(0, 110)
-        self.table.setColumnWidth(1, 320)
-        self.table.setColumnWidth(2, 100)
+        self.table.setColumnWidth(0, 88)
+        self.table.setColumnWidth(2, 78)
+
+        header = self.table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.Fixed)
+        header.setSectionResizeMode(1, QHeaderView.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.Fixed)
 
         self.add_button = QPushButton("Добавить")
         self.add_all_sessions_button = QPushButton("Добавить все с/з")
@@ -224,7 +229,7 @@ class ServicesBlock(QGroupBox):
         self.table.setItem(row, 2, amount_item)
 
     def _create_service_combo(self, current_text):
-        combo = QComboBox()
+        combo = NoWheelComboBox()
         combo.setEditable(True)
 
         for item in LAWYER_SERVICE_TYPES:

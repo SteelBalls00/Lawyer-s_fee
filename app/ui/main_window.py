@@ -9,12 +9,13 @@ from app.ui.panels.preview_panel import PreviewPanel
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, state, case_controller, payment_calculator, parent=None):
+    def __init__(self, state, case_controller, payment_calculator, preview_renderer, parent=None):
         super().__init__(parent)
 
         self.state = state
         self.case_controller = case_controller
         self.payment_calculator = payment_calculator
+        self.preview_renderer = preview_renderer
 
         self.setWindowTitle(WINDOW_TITLE)
         self.resize(1600, 900)
@@ -32,7 +33,10 @@ class MainWindow(QMainWindow):
             payment_calculator=self.payment_calculator,
             parent=self,
         )
-        self.preview_panel = PreviewPanel(parent=self)
+        self.preview_panel = PreviewPanel(
+            preview_renderer=self.preview_renderer,
+            parent=self,
+        )
 
         splitter = QSplitter(Qt.Horizontal)
         splitter.addWidget(self.info_panel)

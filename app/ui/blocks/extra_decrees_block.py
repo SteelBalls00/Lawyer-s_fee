@@ -5,7 +5,6 @@ from datetime import date, datetime
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtWidgets import (
     QAbstractItemView,
-    QComboBox,
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -15,10 +14,12 @@ from PyQt5.QtWidgets import (
     QTableWidgetItem,
     QVBoxLayout,
     QWidget,
+    QHeaderView,
 )
 
 from app.constants import EXTRA_DECREE_SOURCES
 from app.state import ExtraDecreeRow
+from app.ui.widgets.no_wheel_combo_box import NoWheelComboBox
 
 
 class ExtraDecreesBlock(QGroupBox):
@@ -49,9 +50,13 @@ class ExtraDecreesBlock(QGroupBox):
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.table.verticalHeader().setVisible(False)
-        self.table.setColumnWidth(0, 320)
-        self.table.setColumnWidth(1, 130)
-        self.table.setColumnWidth(2, 100)
+        self.table.setColumnWidth(1, 105)
+        self.table.setColumnWidth(2, 78)
+
+        header = self.table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.Fixed)
+        header.setSectionResizeMode(2, QHeaderView.Fixed)
 
         self.add_button = QPushButton("Добавить")
         self.delete_button = QPushButton("Удалить")
@@ -179,7 +184,7 @@ class ExtraDecreesBlock(QGroupBox):
         self.table.setItem(row, 2, amount_item)
 
     def _create_source_combo(self, current_text):
-        combo = QComboBox()
+        combo = NoWheelComboBox()
         combo.setEditable(True)
 
         for item in EXTRA_DECREE_SOURCES:

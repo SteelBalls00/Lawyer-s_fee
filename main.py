@@ -9,8 +9,14 @@ from app.state import AppState
 from app.db.firebird_client import FirebirdClient
 from app.db.repositories import CaseRepository
 from app.controllers.case_controller import CaseController
+
 from app.services.payment_rates import PaymentRates
 from app.services.payment_calculator import PaymentCalculator
+from app.services.context_builder import ContextBuilder
+from app.services.morphology import MorphologyService
+from app.services.tag_resolver import TagResolver
+from app.services.preview_renderer import PreviewRenderer
+
 from app.ui.main_window import MainWindow
 
 
@@ -22,6 +28,7 @@ def main():
     app = QApplication(sys.argv)
 
     state = AppState()
+
     db_client = FirebirdClient(config_path)
     repository = CaseRepository(db_client)
     case_controller = CaseController(state, repository)
@@ -29,10 +36,19 @@ def main():
     payment_rates = PaymentRates(rates_path)
     payment_calculator = PaymentCalculator(payment_rates)
 
+    morphology_service = MorphologyService()
+    context_builder = ContextBuilder(payment_calculator)
+    tag_resolver = TagResolver(morphology_service)
+    preview_renderer = PreviewRenderer(
+        context_builder=context_builder,
+        tag_resolver=tag_resolver,
+    )
+
     window = MainWindow(
         state=state,
         case_controller=case_controller,
         payment_calculator=payment_calculator,
+        preview_renderer=preview_renderer,
     )
     window.showMaximized()
 
