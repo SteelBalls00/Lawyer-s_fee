@@ -20,6 +20,8 @@ from PyQt5.QtWidgets import (
 from app.constants import EXTRA_DECREE_SOURCES
 from app.state import ExtraDecreeRow
 from app.ui.widgets.no_wheel_combo_box import NoWheelComboBox
+from app.services.money_to_text import to_decimal_money, format_money_for_edit
+
 
 
 class ExtraDecreesBlock(QGroupBox):
@@ -157,10 +159,10 @@ class ExtraDecreesBlock(QGroupBox):
 
         if item.column() == 2:
             text = item.text().strip()
-            digits = "".join(ch for ch in text if ch.isdigit())
-            if text != digits:
+            cleaned = self._clean_money_text(text)
+            if text != cleaned:
                 self._loading = True
-                item.setText(digits)
+                item.setText(cleaned)
                 self._loading = False
 
         self.data_changed.emit()
@@ -176,7 +178,7 @@ class ExtraDecreesBlock(QGroupBox):
         )
         date_item.setTextAlignment(Qt.AlignCenter)
 
-        amount_item = QTableWidgetItem(str(int(amount or 0)))
+        amount_item = QTableWidgetItem(format_money_for_edit(amount))
         amount_item.setTextAlignment(Qt.AlignCenter)
 
         self.table.setCellWidget(row, 0, source_combo)
@@ -222,8 +224,25 @@ class ExtraDecreesBlock(QGroupBox):
     def _get_row_amount(self, row):
         item = self.table.item(row, 2)
         if item is None:
-            return 0
+            return to_decimal_money("0")
 
-        text = item.text().strip()
-        digits = "".join(ch for ch in text if ch.isdigit())
-        return int(digits) if digits else 0
+        return to_decimal_money(item.text())
+
+    @staticmethod
+    def _clean_money_text(text):
+        result = []
+        comma_used = False
+
+        for ch in text:
+            if ch.isdigit():
+                result.append(ch)
+            elif ch in ",." and not comma_used:
+                result.append(",")
+                comma_used = True
+
+        if comma_used:
+            left, right = "".join(result).split(",", 1)
+            right = right[:2]
+            return left + "," + right
+
+        return "".join(result)

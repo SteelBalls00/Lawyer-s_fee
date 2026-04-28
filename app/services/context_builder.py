@@ -1,12 +1,18 @@
 # -*- coding: utf-8 -*-
 
+from app.constants import PAYMENT_RULE_OPTIONS
 from app.services.date_service import (
     format_date,
     format_russian_date,
     group_dates_by_month_year,
     format_russian_dates_list,
 )
-from app.services.money_to_text import money_to_text
+from app.services.money_to_text import (
+    format_money,
+    money_words_only,
+    money_units_text,
+    money_with_words,
+)
 
 
 class ContextBuilder(object):
@@ -40,7 +46,23 @@ class ContextBuilder(object):
                 last_service_date,
             )
 
+        defendant_fio = defendant.fio if defendant else ""
+        defendant_sex = defendant.sex if defendant else ""
+        defendant_article = defendant.article if defendant else ""
+
+        lawyer_fio = lawyer.fio if lawyer else ""
+        recipient_name = lawyer.recipient_name if lawyer else ""
+        inn = lawyer.inn if lawyer else ""
+        kpp = lawyer.kpp if lawyer else ""
+        account = lawyer.account if lawyer else ""
+        bank = lawyer.bank if lawyer else ""
+        bik = lawyer.bik if lawyer else ""
+        corr_account = lawyer.corr_account if lawyer else ""
+
+        rule_display_letter = self._get_payment_rule_display_letter(state.payment_rule.letter)
+
         context = {
+            # Дело
             "номер дела": state.case_number.value,
             "дело": state.case_number.value,
             "уид": state.judicial_uid.value,
@@ -48,38 +70,78 @@ class ContextBuilder(object):
             "судья": state.judge.value,
             "секретарь": state.secretary.value,
             "гос обвинитель": state.prosecutor.value,
+            "гос. обвинитель": state.prosecutor.value,
             "государственный обвинитель": state.prosecutor.value,
             "дата приговора": state.verdict_date.value,
 
+            # Вводная часть
             "вводная часть": self._build_intro_text(state),
 
-            "подсудимый": defendant.fio if defendant else "",
-            "подсудимый пол": defendant.sex if defendant else "",
+            # Подсудимый
+            "подсудимый": defendant_fio,
+            "подсудимый пол": defendant_sex,
             "подсудимый дата рождения": format_date(defendant.birth_date) if defendant else "",
-            "подсудимый статья": defendant.article if defendant else "",
+            "подсудимый статья": defendant_article,
+            "основная статья": defendant_article,
+            "осуждение": self._build_conviction_word(state),
 
-            "адвокат": lawyer.fio if lawyer else "",
-            "адвокат получатель": lawyer.recipient_name if lawyer else "",
-            "адвокат инн": lawyer.inn if lawyer else "",
-            "адвокат кпп": lawyer.kpp if lawyer else "",
-            "адвокат счет": lawyer.account if lawyer else "",
-            "адвокат банк": lawyer.bank if lawyer else "",
-            "адвокат бик": lawyer.bik if lawyer else "",
-            "адвокат корр счет": lawyer.corr_account if lawyer else "",
+            # Адвокат
+            "адвокат": lawyer_fio,
+            "фио адвоката": lawyer_fio,
 
-            "заявлено адвокатом": str(state.lawyer_claimed_amount or 0),
+            # Получатель / реквизиты — нижний регистр, потому что TagResolver приводит тег к lower()
+            "наименование получателя": recipient_name,
+            "адвокат получатель": recipient_name,
+            "получатель": recipient_name,
 
-            "вознаграждение": str(reward_base),
-            "вознаграждение с процентами": str(reward_with_coefficients),
+            "инн": inn,
+            "адвокат инн": inn,
+
+            "кпп": kpp,
+            "адвокат кпп": kpp,
+
+            # В шаблоне написано "Рассчетный счет" с двумя "с", оставляем совместимость.
+            "рассчетный счет": account,
+            "расчетный счет": account,
+            "адвокат счет": account,
+            "счет": account,
+
+            "банк получателя": bank,
+            "адвокат банк": bank,
+            "банк": bank,
+
+            "бик": bik,
+            "адвокат бик": bik,
+
+            "корр. счет банка получателя": corr_account,
+            "корр счет банка получателя": corr_account,
+            "корр. счёт банка получателя": corr_account,
+            "корр счёт банка получателя": corr_account,
+            "адвокат корр счет": corr_account,
+
+            # Суммы
+            "заявлено адвокатом": format_money(state.lawyer_claimed_amount),
+            "адвокатом заявлена выплата вознаграждения": format_money(state.lawyer_claimed_amount),
+
+            "вознаграждение": format_money(reward_base),
+            "вознаграждение с процентами": format_money(reward_with_coefficients),
 
             "количество услуг": str(len(state.services)),
-            "вознаграждение за услуги": str(services_total),
-            "вознаграждение за услуги прописью": money_to_text(services_total),
+            "вознаграждение за услуги": format_money(services_total),
+            "вознаграждение за услуги прописью": money_words_only(services_total),
+            "вознаграждение за услуги рублей копеек": money_units_text(services_total),
+            "вознаграждение за услуги с прописью": money_with_words(services_total),
 
-            "сумма дополнительных постановлений": str(extra_total),
-            "итоговая сумма взыскания": str(full_total),
-            "итоговая сумма взыскания прописью": money_to_text(full_total),
+            "сумма дополнительных постановлений": format_money(extra_total),
+            "итоговая сумма взыскания": format_money(full_total),
+            "итоговая сумма взыскания прописью": money_words_only(full_total),
+            "итоговая сумма взыскания рублей копеек": money_units_text(full_total),
+            "итоговая сумма взыскания с прописью": money_with_words(full_total),
 
+            # Правило оплаты
+            "из пп. ст. 22 о возмещении процессуальных издержек": rule_display_letter,
+
+            # Большие текстовые блоки
             "заседания": self._build_sessions_text(state),
             "услуги адвоката": self._build_services_text(state),
             "дополнительные постановления": self._build_extra_decrees_text(state),
@@ -96,7 +158,7 @@ class ContextBuilder(object):
             context["+20% (районный коэффициент)"] = ""
 
         if state.payment_rule.add_experience_30:
-            context["+ 30% (непрерывный стаж работы)"] = "+ 30% (непрерывный стаж работы)"
+            context["+ 30% (непрерывный стаж работы)"] = " + 30% (непрерывный стаж работы) "
             context["+30% (непрерывный стаж работы)"] = "+30% (непрерывный стаж работы)"
         else:
             context["+ 30% (непрерывный стаж работы)"] = ""
@@ -109,13 +171,35 @@ class ContextBuilder(object):
             return state.custom_intro_text
 
         return (
-            "Судья Благовещенского городского суда Амурской области {судья},\n"
-            "при секретаре {секретарь},\n"
-            "с участием государственного обвинителя {гос обвинитель},\n\n"
-            "рассмотрев материалы уголовного дела № {номер дела} в отношении "
-            "{подсудимый рп ио},\n"
-            "{родился пол}, обвиняемого по {подсудимый статья},"
+            "Благовещенский городской суд Амурской области в составе:\n\n"
+            "председательствующего - судьи {судья тп ио},\n\n"
+            "при секретаре {секретарь тп ио},\n\n"
+            "с участием:\n\n"
+            "государственного обвинителя {гос обвинитель тп ио},\n"
+            "подсудимого {подсудимый тп ио},\n"
+            "его защитника – адвоката {адвокат тп ио},\n\n"
+            "рассмотрев в открытом судебном заседании уголовное дело в отношении:\n\n"
+            "{подсудимый тп}, {родился пол},\n\n"
+            "обвиняемого в совершении преступления, предусмотренного {основная статья},"
         )
+
+    def _build_conviction_word(self, state):
+        defendant = state.selected_defendant
+        if defendant is None:
+            return "осуждён"
+
+        sex = (defendant.sex or "").lower()
+        if "жен" in sex:
+            return "осуждена"
+
+        return "осуждён"
+
+    @staticmethod
+    def _get_payment_rule_display_letter(rule_letter):
+        for display_text, value in PAYMENT_RULE_OPTIONS:
+            if value == rule_letter:
+                return display_text
+        return rule_letter or ""
 
     def _get_last_service_date(self, state):
         dates = [item.service_date for item in state.services if item.service_date is not None]
@@ -194,31 +278,35 @@ class ContextBuilder(object):
             if item.decree_date:
                 grouped[source]["dates"].append(item.decree_date)
 
-            grouped[source]["amount"] += int(item.amount or 0)
+            grouped[source]["amount"] += item.amount or 0
 
         lines = []
 
         for source, data in grouped.items():
             dates_text = format_russian_dates_list(data["dates"])
             amount = data["amount"]
+            amount_text = format_money(amount)
+            amount_units = money_units_text(amount)
 
             if source == "от следователя":
                 if len(data["dates"]) > 1:
                     lines.append(
                         "Кроме того, постановлениями следователя от {0} за осуществление защиты "
                         "{{подсудимый рп ио}} на досудебной стадии производства по делу адвокату "
-                        "{{адвокат дп ио}} выплачено вознаграждение в сумме {1} рублей.".format(
+                        "{{адвокат дп ио}} выплачено вознаграждение в сумме {1} {2}.".format(
                             dates_text,
-                            amount,
+                            amount_text,
+                            amount_units,
                         )
                     )
                 else:
                     lines.append(
                         "Кроме того, постановлением следователя от {0} за осуществление защиты "
                         "{{подсудимый рп ио}} на досудебной стадии производства по делу адвокату "
-                        "{{адвокат дп ио}} выплачено вознаграждение в сумме {1} рублей.".format(
+                        "{{адвокат дп ио}} выплачено вознаграждение в сумме {1} {2}.".format(
                             dates_text,
-                            amount,
+                            amount_text,
+                            amount_units,
                         )
                     )
 
@@ -228,9 +316,10 @@ class ContextBuilder(object):
                         "Кроме того, постановлениями Благовещенского городского суда Амурской области от {0} "
                         "за осуществление защиты {{подсудимый рп ио}} на досудебной стадии производства "
                         "по делу при обжаловании постановления о продлении срока содержания под стражей "
-                        "адвокату {{адвокат дп ио}} выплачено вознаграждение в сумме {1} рублей.".format(
+                        "адвокату {{адвокат дп ио}} выплачено вознаграждение в сумме {1} {2}.".format(
                             dates_text,
-                            amount,
+                            amount_text,
+                            amount_units,
                         )
                     )
                 else:
@@ -238,9 +327,10 @@ class ContextBuilder(object):
                         "Кроме того, постановлением судьи Благовещенского городского суда Амурской области "
                         "от {0} за осуществление защиты {{подсудимый рп ио}} на досудебной стадии производства "
                         "по делу при обжаловании постановления о продлении срока содержания под стражей "
-                        "адвокату {{адвокат дп ио}} выплачено вознаграждение в сумме {1} рублей.".format(
+                        "адвокату {{адвокат дп ио}} выплачено вознаграждение в сумме {1} {2}.".format(
                             dates_text,
-                            amount,
+                            amount_text,
+                            amount_units,
                         )
                     )
 
@@ -250,9 +340,10 @@ class ContextBuilder(object):
                         "Кроме того, постановлениями Амурского областного суда от {0} за осуществление защиты "
                         "{{подсудимый рп ио}} на досудебной стадии производства по делу при обжаловании "
                         "постановления о продлении срока содержания под стражей адвокату {{адвокат дп ио}} "
-                        "выплачено вознаграждение в сумме {1} рублей.".format(
+                        "выплачено вознаграждение в сумме {1} {2}.".format(
                             dates_text,
-                            amount,
+                            amount_text,
+                            amount_units,
                         )
                     )
                 else:
@@ -260,19 +351,21 @@ class ContextBuilder(object):
                         "Кроме того, постановлением судьи Амурского областного суда от {0} за осуществление защиты "
                         "{{подсудимый рп ио}} на досудебной стадии производства по делу при обжаловании "
                         "постановления о продлении срока содержания под стражей адвокату {{адвокат дп ио}} "
-                        "выплачено вознаграждение в сумме {1} рублей.".format(
+                        "выплачено вознаграждение в сумме {1} {2}.".format(
                             dates_text,
-                            amount,
+                            amount_text,
+                            amount_units,
                         )
                     )
 
             else:
                 lines.append(
                     "Кроме того, постановлением {0} от {1} адвокату {{адвокат дп ио}} выплачено "
-                    "вознаграждение в сумме {2} рублей.".format(
+                    "вознаграждение в сумме {2} {3}.".format(
                         source,
                         dates_text,
-                        amount,
+                        amount_text,
+                        amount_units,
                     )
                 )
 
@@ -294,8 +387,8 @@ class ContextBuilder(object):
                 "судом наказание, при установленных обстоятельствах, препятствием для взыскания "
                 "с осуждённого процессуальных издержек не является. При таких обстоятельствах, "
                 "на основании ч. 1 ст. 132 УПК РФ с осуждённого {{подсудимый рп ио}} в доход "
-                "федерального бюджета Российской Федерации следует взыскать {0} рублей."
-            ).format(full_total)
+                "федерального бюджета Российской Федерации следует взыскать {0} {1}."
+            ).format(format_money(full_total), money_units_text(full_total),)
 
         if defendant is None:
             return "Подсудимый освобождается от взыскания."
@@ -306,10 +399,11 @@ class ContextBuilder(object):
         if state.use_extra_decrees:
             return (
                 "Взыскать с {{подсудимый тп}} процессуальные издержки в сумме "
-                "{0} ({1})."
+                "{0} ({1}) {2}."
             ).format(
-                full_total,
-                money_to_text(full_total),
+                format_money(full_total),
+                money_words_only(full_total),
+                money_units_text(full_total),
             )
 
         return (

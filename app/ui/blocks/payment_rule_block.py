@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from PyQt5.QtCore import pyqtSignal
+from datetime import date
+
+from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -10,22 +12,30 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
 )
 
-from app.constants import PAYMENT_RULE_OPTIONS
+from app.constants import (
+    PAYMENT_RULE_OPTIONS,
+    PAYMENT_RULE_DESCRIPTIONS_SHORT,
+    PAYMENT_RULE_DESCRIPTIONS_FULL,
+)
+from app.services.money_to_text import format_money
 
 
 class PaymentRuleBlock(QGroupBox):
     data_changed = pyqtSignal()
 
-    def __init__(self, parent=None):
+    def __init__(self, payment_calculator, parent=None):
         super().__init__("Размер оплаты за 1 рабочий день", parent)
+
+        self.payment_calculator = payment_calculator
 
         self._build_ui()
         self._connect_signals()
 
     def _build_ui(self):
         self.letter_combo = QComboBox()
-        for display_text, value in PAYMENT_RULE_OPTIONS:
-            self.letter_combo.addItem(display_text, value)
+        self.letter_combo.view().setMouseTracking(True)
+
+        self._fill_combo()
 
         self.rule_label = QLabel("из пп. ст. 22 о возмещении процессуальных издержек")
 
@@ -36,7 +46,7 @@ class PaymentRuleBlock(QGroupBox):
         self.experience_checkbox.setChecked(True)
 
         top_row = QHBoxLayout()
-        top_row.addWidget(self.letter_combo)
+        top_row.addWidget(self.letter_combo, 1)
         top_row.addWidget(self.rule_label, 1)
 
         checks_row = QHBoxLayout()
@@ -49,6 +59,28 @@ class PaymentRuleBlock(QGroupBox):
         root.addLayout(checks_row)
 
         self.setLayout(root)
+
+    def _fill_combo(self):
+        today = date.today()
+
+        for display_text, value in PAYMENT_RULE_OPTIONS:
+            upper_letter = display_text.upper()
+            amount = self.payment_calculator.get_base_rate(value, today)
+
+            short_text = PAYMENT_RULE_DESCRIPTIONS_SHORT.get(value, "")
+            full_text = PAYMENT_RULE_DESCRIPTIONS_FULL.get(value, "")
+
+            item_text = "{0} - {1} - {2}".format(
+                upper_letter,
+                format_money(amount),
+                short_text,
+            )
+
+            self.letter_combo.addItem(item_text, value)
+
+            index = self.letter_combo.count() - 1
+            self.letter_combo.setItemData(index, full_text, Qt.ToolTipRole)
+            self.letter_combo.setItemData(index, display_text, Qt.UserRole + 1)
 
     def _connect_signals(self):
         self.letter_combo.currentIndexChanged.connect(self.data_changed.emit)

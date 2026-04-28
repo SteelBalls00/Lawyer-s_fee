@@ -6,6 +6,8 @@ from PyQt5.QtWidgets import (
     QLineEdit,
 )
 
+from app.services.money_to_text import format_money
+
 
 class TotalBlock(QGroupBox):
     def __init__(self, payment_calculator, parent=None):
@@ -40,6 +42,6 @@ class TotalBlock(QGroupBox):
 
         full_total = services_total + extra_total
 
-        self.services_total_edit.setText(str(services_total))
-        self.extra_decrees_total_edit.setText(str(extra_total))
-        self.full_total_edit.setText(str(full_total))
+        self.services_total_edit.setText(format_money(services_total))
+        self.extra_decrees_total_edit.setText(format_money(extra_total))
+        self.full_total_edit.setText(format_money(full_total))

@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import (
     QLineEdit,
     QVBoxLayout,
 )
+from app.services.money_to_text import to_decimal_money, format_money_for_edit
 
 
 class LawyerBlock(QGroupBox):
@@ -81,7 +82,9 @@ class LawyerBlock(QGroupBox):
             self._clear_labels()
 
         self.claimed_amount_edit.setText(
-            str(state.lawyer_claimed_amount) if state.lawyer_claimed_amount else ""
+            format_money_for_edit(state.lawyer_claimed_amount)
+            if state.lawyer_claimed_amount
+            else ""
         )
 
         self.lawyer_combo.blockSignals(False)
@@ -96,8 +99,7 @@ class LawyerBlock(QGroupBox):
         else:
             state.selected_lawyer_index = index
 
-        digits = "".join(ch for ch in self.claimed_amount_edit.text() if ch.isdigit())
-        state.lawyer_claimed_amount = int(digits) if digits else 0
+        state.lawyer_claimed_amount = to_decimal_money(self.claimed_amount_edit.text())
 
     def _on_current_changed(self, index):
         self._apply_lawyer(index)
@@ -106,13 +108,34 @@ class LawyerBlock(QGroupBox):
         if self._loading:
             return
 
-        digits = "".join(ch for ch in text if ch.isdigit())
-        if text != digits:
+        cleaned = self._clean_money_text(text)
+
+        if text != cleaned:
             self._loading = True
-            self.claimed_amount_edit.setText(digits)
+            self.claimed_amount_edit.setText(cleaned)
+            self.claimed_amount_edit.setCursorPosition(len(cleaned))
             self._loading = False
 
         self.data_changed.emit()
+
+    @staticmethod
+    def _clean_money_text(text):
+        result = []
+        comma_used = False
+
+        for ch in text:
+            if ch.isdigit():
+                result.append(ch)
+            elif ch in ",." and not comma_used:
+                result.append(",")
+                comma_used = True
+
+        if comma_used:
+            left, right = "".join(result).split(",", 1)
+            right = right[:2]
+            return left + "," + right
+
+        return "".join(result)
 
     def _apply_lawyer(self, index):
         if not (0 <= index < len(self._lawyers)):

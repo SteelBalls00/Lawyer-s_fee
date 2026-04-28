@@ -2,6 +2,7 @@
 
 import configparser
 from datetime import datetime
+from decimal import Decimal
 
 
 class PaymentRates(object):
@@ -28,7 +29,7 @@ class PaymentRates(object):
 
             for key, value in parser.items(section):
                 start_date = datetime.strptime(key.strip(), "%d.%m.%Y").date()
-                amount = int(str(value).strip())
+                amount = Decimal(str(value).strip().replace(",", "."))
                 section_rates.append((start_date, amount))
 
             section_rates.sort(key=lambda x: x[0])

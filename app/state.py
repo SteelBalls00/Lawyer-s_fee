@@ -3,6 +3,7 @@
 from dataclasses import dataclass, field
 from datetime import date
 from typing import List, Optional
+from decimal import Decimal
 
 
 @dataclass
@@ -75,7 +76,7 @@ class PaymentRule:
 class ServiceRow:
     service_date: Optional[date] = None
     service_name: str = ""
-    amount: int = 0
+    amount: Decimal = Decimal("0.00")
     is_session: bool = False
 
 
@@ -83,7 +84,7 @@ class ServiceRow:
 class ExtraDecreeRow:
     source: str = ""
     decree_date: Optional[date] = None
-    amount: int = 0
+    amount: Decimal = Decimal("0.00")
 
 
 @dataclass
@@ -103,7 +104,7 @@ class AppState:
 
     lawyers: List[LawyerRequisites] = field(default_factory=list)
     selected_lawyer_index: int = 0
-    lawyer_claimed_amount: int = 0
+    lawyer_claimed_amount: Decimal = Decimal("0.00")
 
     events: List[EventCard] = field(default_factory=list)
 
@@ -132,7 +133,7 @@ class AppState:
 
         self.lawyers = []
         self.selected_lawyer_index = 0
-        self.lawyer_claimed_amount = 0
+        self.lawyer_claimed_amount = Decimal("0.00")
 
         self.events = []
 

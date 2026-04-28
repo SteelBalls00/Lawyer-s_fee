@@ -40,7 +40,7 @@ class InfoPanel(QWidget):
         self.intro_block = IntroBlock()
         self.defendant_block = DefendantBlock()
         self.lawyer_block = LawyerBlock()
-        self.payment_rule_block = PaymentRuleBlock()
+        self.payment_rule_block = PaymentRuleBlock(payment_calculator=self.payment_calculator,)
         self.services_block = ServicesBlock(
             state=self.state,
             payment_calculator=self.payment_calculator,

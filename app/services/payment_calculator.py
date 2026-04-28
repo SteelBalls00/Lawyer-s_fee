@@ -2,6 +2,8 @@
 
 from decimal import Decimal, ROUND_HALF_UP
 
+from app.services.money_to_text import to_decimal_money
+
 
 class PaymentCalculator(object):
     def __init__(self, rates):
@@ -9,22 +11,24 @@ class PaymentCalculator(object):
 
     @staticmethod
     def _round_money(value):
-        return int(Decimal(str(value)).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+        value = to_decimal_money(value)
+        return value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
     def get_base_rate(self, rule_letter: str, target_date):
-        return self.rates.get_rate(rule_letter, target_date)
+        return to_decimal_money(self.rates.get_rate(rule_letter, target_date))
 
-    def apply_coefficients(self, base_amount: int, add_region_20: bool, add_experience_30: bool):
-        multiplier = Decimal("1.0")
+    def apply_coefficients(self, base_amount, add_region_20: bool, add_experience_30: bool):
+        base_amount = to_decimal_money(base_amount)
+
+        multiplier = Decimal("1.00")
 
         if add_region_20:
-            multiplier += Decimal("0.2")
+            multiplier += Decimal("0.20")
 
         if add_experience_30:
-            multiplier += Decimal("0.3")
+            multiplier += Decimal("0.30")
 
-        result = Decimal(str(base_amount)) * multiplier
-        return self._round_money(result)
+        return self._round_money(base_amount * multiplier)
 
     def get_amount_for_date(self, payment_rule, target_date):
         base_amount = self.get_base_rate(payment_rule.letter, target_date)
@@ -36,17 +40,17 @@ class PaymentCalculator(object):
 
     @staticmethod
     def get_services_total(services):
-        total = 0
+        total = Decimal("0.00")
         for item in services:
-            total += int(item.amount or 0)
-        return total
+            total += to_decimal_money(item.amount)
+        return total.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
     @staticmethod
     def get_extra_decrees_total(extra_decrees):
-        total = 0
+        total = Decimal("0.00")
         for item in extra_decrees:
-            total += int(item.amount or 0)
-        return total
+            total += to_decimal_money(item.amount)
+        return total.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
     def get_full_total(self, services, extra_decrees):
         return self.get_services_total(services) + self.get_extra_decrees_total(extra_decrees)

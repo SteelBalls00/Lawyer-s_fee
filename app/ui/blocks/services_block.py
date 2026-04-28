@@ -20,6 +20,7 @@ from PyQt5.QtWidgets import (
 from app.constants import LAWYER_SERVICE_TYPES
 from app.state import ServiceRow
 from app.ui.widgets.no_wheel_combo_box import NoWheelComboBox
+from app.services.money_to_text import to_decimal_money, format_money_for_edit, format_money
 
 
 class ServicesBlock(QGroupBox):
@@ -201,12 +202,13 @@ class ServicesBlock(QGroupBox):
             self._recalculate_row_amount(row)
             self._loading = False
 
+
         elif column == 2:
             text = item.text().strip()
-            digits = "".join(ch for ch in text if ch.isdigit())
-            if text != digits:
+            cleaned = self._clean_money_text(text)
+            if text != cleaned:
                 self._loading = True
-                item.setText(digits)
+                item.setText(cleaned)
                 self._loading = False
 
         self._update_summary()
@@ -221,7 +223,7 @@ class ServicesBlock(QGroupBox):
         )
         date_item.setTextAlignment(Qt.AlignCenter)
 
-        amount_item = QTableWidgetItem(str(int(amount or 0)))
+        amount_item = QTableWidgetItem(format_money_for_edit(amount))
         amount_item.setTextAlignment(Qt.AlignCenter)
 
         self.table.setItem(row, 0, date_item)
@@ -263,7 +265,7 @@ class ServicesBlock(QGroupBox):
             self.state.payment_rule,
             service_date,
         )
-        amount_item.setText(str(amount))
+        amount_item.setText(format_money_for_edit(amount))
 
     def _get_row_date(self, row):
         item = self.table.item(row, 0)
@@ -288,13 +290,9 @@ class ServicesBlock(QGroupBox):
     def _get_row_amount(self, row):
         item = self.table.item(row, 2)
         if item is None:
-            return 0
+            return to_decimal_money("0")
 
-        text = item.text().strip()
-        digits = "".join(ch for ch in text if ch.isdigit())
-        if not digits:
-            return 0
-        return int(digits)
+        return to_decimal_money(item.text())
 
     def _update_summary(self):
         rows_count = self.table.rowCount()
@@ -304,5 +302,24 @@ class ServicesBlock(QGroupBox):
             total += self._get_row_amount(row)
 
         self.summary_label.setText(
-            "Число дней {0}, Сумма: {1}".format(rows_count, total)
+            "Число дней {0}, Сумма: {1}".format(rows_count, format_money(total))
         )
+
+    @staticmethod
+    def _clean_money_text(text):
+        result = []
+        comma_used = False
+
+        for ch in text:
+            if ch.isdigit():
+                result.append(ch)
+            elif ch in ",." and not comma_used:
+                result.append(",")
+                comma_used = True
+
+        if comma_used:
+            left, right = "".join(result).split(",", 1)
+            right = right[:2]
+            return left + "," + right
+
+        return "".join(result)

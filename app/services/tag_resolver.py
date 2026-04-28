@@ -8,6 +8,10 @@ class TagResolver(object):
 
     CASES = set(["ип", "рп", "дп", "вп", "тп", "пп"])
 
+    SPECIAL_TAGS = set([
+        "родился пол",
+    ])
+
     def __init__(self, morphology_service):
         self.morphology = morphology_service
 
@@ -15,8 +19,6 @@ class TagResolver(object):
         previous = None
         current = template_text or ""
 
-        # Несколько проходов нужны потому, что некоторые сгенерированные блоки
-        # сами содержат теги, например {подсудимый рп ио}.
         for _ in range(5):
             if previous == current:
                 break
@@ -28,6 +30,16 @@ class TagResolver(object):
             )
 
         return current
+
+    def is_known_tag(self, raw_tag, context):
+        raw_tag = (raw_tag or "").strip()
+        low = raw_tag.lower()
+
+        if low in self.SPECIAL_TAGS:
+            return True
+
+        parsed = self._parse_tag(raw_tag)
+        return parsed["base_key"] in context
 
     def _replace_tag(self, match, context):
         raw_tag = match.group(1).strip()
@@ -48,6 +60,11 @@ class TagResolver(object):
         case_short = parsed["case_short"]
         initials = parsed["initials"]
 
+        # Важно: неизвестные теги больше не исчезают молча.
+        # Они остаются в документе, чтобы диагностика могла их показать.
+        if base_key not in context:
+            return "{" + raw_tag + "}"
+
         value = context.get(base_key, "")
 
         if value is None:
@@ -56,7 +73,16 @@ class TagResolver(object):
         value = str(value)
 
         if case_short:
-            if base_key in ("подсудимый", "адвокат", "судья", "секретарь", "гос обвинитель", "государственный обвинитель"):
+            if base_key in (
+                "подсудимый",
+                "адвокат",
+                "фио адвоката",
+                "судья",
+                "секретарь",
+                "гос обвинитель",
+                "гос. обвинитель",
+                "государственный обвинитель",
+            ):
                 value = self.morphology.decline_fio(value, case_short, initials=initials)
             else:
                 value = self.morphology.decline_text(value, case_short)

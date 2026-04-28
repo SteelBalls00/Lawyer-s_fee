@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import re
+import os
+import sys
 
 import pymorphy2
 
@@ -17,7 +19,49 @@ CASE_MAP = {
 
 class MorphologyService(object):
     def __init__(self):
-        self.morph = pymorphy2.MorphAnalyzer()
+        dict_path = self._get_pymorphy2_dict_path()
+        self.morph = pymorphy2.MorphAnalyzer(path=dict_path)
+
+    @staticmethod
+    def _get_pymorphy2_dict_path():
+        candidates = []
+
+        # PyInstaller onefile / onedir.
+        if hasattr(sys, "_MEIPASS"):
+            candidates.append(
+                os.path.join(sys._MEIPASS, "pymorphy2_dicts_ru", "data")
+            )
+
+        # Обычный запуск из venv.
+        try:
+            import pymorphy2_dicts_ru
+            candidates.append(pymorphy2_dicts_ru.get_path())
+        except Exception:
+            pass
+
+        # Запасной вариант для разработки.
+        candidates.append(
+            os.path.join(
+                os.getcwd(),
+                "pymorphy2_dicts_ru",
+                "data",
+            )
+        )
+
+        for path in candidates:
+            if path and os.path.exists(path):
+                # В словаре обычно есть эти файлы.
+                if (
+                    os.path.exists(os.path.join(path, "grammemes.json"))
+                    or os.path.exists(os.path.join(path, "paradigms.array"))
+                ):
+                    return path
+
+        raise RuntimeError(
+            "Не найден словарь pymorphy2_dicts_ru. Проверенные пути:\n{0}".format(
+                "\n".join(candidates)
+            )
+        )
 
     def decline_text(self, text, case_short):
         text = text or ""
