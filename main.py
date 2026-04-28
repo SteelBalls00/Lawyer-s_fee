@@ -48,6 +48,7 @@ def main():
     preview_renderer = PreviewRenderer(
         context_builder=context_builder,
         tag_resolver=tag_resolver,
+        template_path=template_path,
     )
 
     docx_renderer = DocxRenderer(

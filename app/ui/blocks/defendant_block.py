@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import (
     QLabel,
     QVBoxLayout,
 )
+from app.ui.widgets.no_wheel_combo_box import NoWheelComboBox
 
 
 class DefendantBlock(QGroupBox):
@@ -23,7 +24,7 @@ class DefendantBlock(QGroupBox):
         self._connect_signals()
 
     def _build_ui(self):
-        self.defendant_combo = QComboBox()
+        self.defendant_combo = NoWheelComboBox()
         self.custody_checkbox = QCheckBox("Находился под стражей")
 
         self.sex_label = QLabel("-")

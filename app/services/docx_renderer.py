@@ -108,14 +108,53 @@ class DocxRenderer(object):
         if rendered_text == original_text:
             return
 
-        # Раньше здесь физически удалялся абзац через XML.
-        # Это могло вызывать предупреждение Word о восстановлении документа.
-        # Теперь безопасно оставляем пустой абзац.
         if not rendered_text.strip() and self._paragraph_is_only_tags(original_text):
             self._set_paragraph_text(paragraph, "")
             return
 
-        self._set_paragraph_text(paragraph, rendered_text)
+        segments = self.tag_resolver.render_segments(original_text, context)
+        self._set_paragraph_segments(paragraph, segments)
+
+    def _set_paragraph_segments(self, paragraph, segments):
+        """
+        Заменяет текст абзаца на набор run-ов.
+        Нужен для поддержки {тег bold}.
+        """
+
+        if not segments:
+            self._set_paragraph_text(paragraph, "")
+            return
+
+        base_run = paragraph.runs[0] if paragraph.runs else paragraph.add_run("")
+
+        # Очищаем существующие runs
+        for run in paragraph.runs:
+            run.text = ""
+
+        first = True
+
+        for segment in segments:
+            text = self._clean_xml_text(segment.get("text") or "")
+            if not text:
+                continue
+
+            is_bold = bool(segment.get("bold"))
+
+            if first:
+                run = base_run
+                first = False
+            else:
+                run = paragraph.add_run()
+
+                try:
+                    run.style = base_run.style
+                except Exception:
+                    pass
+
+            run.text = text
+
+            if is_bold:
+                run.bold = True
 
     @staticmethod
     def _get_paragraph_text(paragraph):

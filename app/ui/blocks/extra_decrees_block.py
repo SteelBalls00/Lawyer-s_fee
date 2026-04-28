@@ -88,8 +88,6 @@ class ExtraDecreesBlock(QGroupBox):
 
     def _connect_signals(self):
         self.radio_yes.toggled.connect(self._on_mode_changed)
-        self.radio_yes.toggled.connect(self.data_changed.emit)
-        self.radio_no.toggled.connect(self.data_changed.emit)
 
         self.add_button.clicked.connect(self._on_add_clicked)
         self.delete_button.clicked.connect(self._on_delete_clicked)
@@ -133,8 +131,11 @@ class ExtraDecreesBlock(QGroupBox):
 
         state.extra_decrees = rows
 
-    def _on_mode_changed(self):
-        self.container.setVisible(self.radio_yes.isChecked())
+    def _on_mode_changed(self, checked):
+        self.container.setVisible(checked)
+
+        if not self._loading:
+            self.data_changed.emit()
 
     def _on_add_clicked(self):
         self._loading = True

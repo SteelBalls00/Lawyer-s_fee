@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
 )
 from app.services.money_to_text import to_decimal_money, format_money_for_edit
+from app.ui.widgets.no_wheel_combo_box import NoWheelComboBox
 
 
 class LawyerBlock(QGroupBox):
@@ -25,7 +26,7 @@ class LawyerBlock(QGroupBox):
         self._connect_signals()
 
     def _build_ui(self):
-        self.lawyer_combo = QComboBox()
+        self.lawyer_combo = NoWheelComboBox()
         self.claimed_amount_edit = QLineEdit()
         self.claimed_amount_edit.setPlaceholderText("Введите сумму")
 
