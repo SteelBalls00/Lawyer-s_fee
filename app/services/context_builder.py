@@ -48,6 +48,8 @@ class ContextBuilder(object):
 
         defendant_fio = defendant.fio if defendant else ""
         defendant_sex = defendant.sex if defendant else ""
+        defendant_native = defendant.native if defendant else ""
+        defendant_birth_date = defendant.birth_date if defendant else None
         defendant_article = defendant.article if defendant else ""
 
         lawyer_fio = lawyer.fio if lawyer else ""
@@ -80,7 +82,10 @@ class ContextBuilder(object):
             # Подсудимый
             "подсудимый": defendant_fio,
             "подсудимый пол": defendant_sex,
-            "подсудимый дата рождения": format_date(defendant.birth_date) if defendant else "",
+            "подсудимый дата рождения": format_date(defendant_birth_date),
+            "дата рождения": format_russian_date(defendant_birth_date),
+            "уроженец": defendant_native,
+            "подсудимый уроженец": defendant_native,
             "подсудимый статья": defendant_article,
             "основная статья": defendant_article,
             "осуждение": self._build_conviction_word(state),
@@ -179,7 +184,7 @@ class ContextBuilder(object):
             "подсудимого {подсудимый тп ио},\n"
             "его защитника – адвоката {адвокат тп ио},\n\n"
             "рассмотрев в открытом судебном заседании уголовное дело в отношении:\n\n"
-            "{подсудимый тп}, {родился пол},\n\n"
+            "{подсудимый тп}, {родился пол} {дата рождения} в {уроженец},\n\n"
             "обвиняемого в совершении преступления, предусмотренного {основная статья},"
         )
 

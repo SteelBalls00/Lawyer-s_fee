@@ -27,6 +27,7 @@ class DefendantBlock(QGroupBox):
         self.custody_checkbox = QCheckBox("Находился под стражей")
 
         self.sex_label = QLabel("-")
+        self.native_label = QLabel("-")
         self.birth_date_label = QLabel("-")
         self.article_label = QLabel("-")
 
@@ -35,6 +36,7 @@ class DefendantBlock(QGroupBox):
 
         details_form = QFormLayout()
         details_form.addRow("Пол", self.sex_label)
+        details_form.addRow("Уроженец", self.native_label)
         details_form.addRow("Дата рождения", self.birth_date_label)
         details_form.addRow("Основная статья", self.article_label)
 
@@ -68,6 +70,7 @@ class DefendantBlock(QGroupBox):
             self._apply_defendant(index)
         else:
             self.sex_label.setText("-")
+            self.native_label.setText("-")
             self.birth_date_label.setText("-")
             self.article_label.setText("-")
             self.custody_checkbox.setChecked(False)
@@ -93,6 +96,7 @@ class DefendantBlock(QGroupBox):
     def _apply_defendant(self, index):
         if not (0 <= index < len(self._defendants)):
             self.sex_label.setText("-")
+            self.native_label.setText("-")
             self.birth_date_label.setText("-")
             self.article_label.setText("-")
             self.custody_checkbox.setChecked(False)
@@ -100,6 +104,7 @@ class DefendantBlock(QGroupBox):
 
         defendant = self._defendants[index]
         self.sex_label.setText(defendant.sex or "-")
+        self.native_label.setText(defendant.native or "-")
         self.birth_date_label.setText(
             defendant.birth_date.strftime("%d.%m.%Y") if defendant.birth_date else "-"
         )

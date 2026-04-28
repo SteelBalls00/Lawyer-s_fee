@@ -62,6 +62,7 @@ class MainWindow(QMainWindow):
             payment_calculator=self.payment_calculator,
             parent=self,
         )
+        self.info_panel.setMinimumWidth(620)
 
         self.preview_panel = PreviewPanel(
             preview_renderer=self.preview_renderer,
@@ -72,7 +73,7 @@ class MainWindow(QMainWindow):
         splitter.addWidget(self.info_panel)
         splitter.addWidget(self.preview_panel)
         splitter.setChildrenCollapsible(False)
-        splitter.setSizes([520, 1080])
+        splitter.setSizes([640, 960])
 
         self.setCentralWidget(splitter)
 

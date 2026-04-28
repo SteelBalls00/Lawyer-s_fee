@@ -70,6 +70,7 @@ class CaseRepository(object):
                     sex=row[1] or "",
                     birth_date=_to_date(row[2]),
                     article=row[3] or "",
+                    native=row[4] or "",
                 )
             )
         return result

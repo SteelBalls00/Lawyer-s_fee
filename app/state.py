@@ -39,6 +39,7 @@ class CaseCard:
 class DefendantCard:
     fio: str = ""
     sex: str = ""
+    native: str = ""
     birth_date: Optional[date] = None
     article: str = ""
     in_custody: bool = False

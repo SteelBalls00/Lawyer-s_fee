@@ -48,7 +48,8 @@ class ExtraDecreesBlock(QGroupBox):
         top_row.addStretch(1)
 
         self.table = QTableWidget(0, 3)
-        self.table.setHorizontalHeaderLabels(["От кого", "Дата постановления", "Сумма"])
+        self.table.setHorizontalHeaderLabels(["От кого", "Дата\nпостановления", "Сумма"])
+        self.table.horizontalHeader().setDefaultAlignment(Qt.AlignCenter)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.table.verticalHeader().setVisible(False)

@@ -119,6 +119,11 @@ class InfoPanel(QWidget):
 
     def _on_services_changed(self):
         self.services_block.save_to_state(self.state)
+
+        # После изменения услуг может измениться последняя дата,
+        # значит надо обновить суммы в комбобоксе подпункта.
+        self.payment_rule_block.load_from_state(self.state)
+
         self.total_block.load_from_state(self.state)
         self.data_changed.emit()
 

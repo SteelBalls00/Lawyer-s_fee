@@ -35,13 +35,18 @@ class CaseController(object):
         self.state.judge.set_db_value(case_info.judge)
 
         if case_info.verdict_date:
-            self.state.verdict_date.set_db_value(
-                case_info.verdict_date.strftime("%d.%m.%Y")
-            )
+            verdict_date_text = case_info.verdict_date.strftime("%d.%m.%Y")
         else:
-            self.state.verdict_date.set_db_value("")
+            verdict_date_text = ""
 
-        self.state.decree_date.set_db_value(date.today().strftime("%d.%m.%Y"))
+        self.state.verdict_date.set_db_value(verdict_date_text)
+
+        # По умолчанию дата постановления совпадает с датой приговора.
+        # Если даты приговора нет, тогда ставим текущую дату как запасной вариант.
+        if verdict_date_text:
+            self.state.decree_date.set_db_value(verdict_date_text)
+        else:
+            self.state.decree_date.set_db_value(date.today().strftime("%d.%m.%Y"))
 
         self.state.selected_defendant_index = 0
         self.state.selected_lawyer_index = 0
