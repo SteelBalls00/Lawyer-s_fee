@@ -111,6 +111,8 @@ class AppState:
 
     use_custom_intro: bool = False
     custom_intro_text: str = ""
+    custom_intro_html: str = ""
+    custom_intro_segments: list = field(default_factory=list)
 
     payment_rule: PaymentRule = field(default_factory=PaymentRule)
     services: List[ServiceRow] = field(default_factory=list)
@@ -140,6 +142,8 @@ class AppState:
 
         self.use_custom_intro = False
         self.custom_intro_text = ""
+        self.custom_intro_html = ""
+        self.custom_intro_segments = []
 
         self.services = []
 

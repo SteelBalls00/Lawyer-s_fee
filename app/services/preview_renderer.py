@@ -53,7 +53,13 @@ class PreviewRenderer(object):
         if not text.strip():
             return '<p class="doc-paragraph empty-line">&nbsp;</p>'
 
-        rendered = self.tag_resolver.render_html(text, context)
+        if self._is_custom_intro_placeholder(text, context):
+            rendered = self.tag_resolver.render_rich_segments_html(
+                context.get("__custom_intro_segments") or [],
+                context,
+            )
+        else:
+            rendered = self.tag_resolver.render_html(text, context)
         align = self._get_alignment(paragraph)
 
         return (
@@ -62,6 +68,13 @@ class PreviewRenderer(object):
                 rendered,
             )
         )
+
+    @staticmethod
+    def _is_custom_intro_placeholder(text, context):
+        if not context.get("__use_custom_intro"):
+            return False
+
+        return (text or "").strip().lower() == "{вводная часть}"
 
     def _render_table(self, table, context):
         rows_html = []

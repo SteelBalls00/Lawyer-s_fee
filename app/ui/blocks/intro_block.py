@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import (
     QTextEdit,
     QVBoxLayout,
 )
+from PyQt5.QtGui import QFont
 
 
 class IntroBlock(QGroupBox):
@@ -21,7 +22,7 @@ class IntroBlock(QGroupBox):
         self._connect_signals()
 
     def _build_ui(self):
-        self.label = QLabel("Использовать свою вводную часть")
+        self.label = QLabel("Использовать свою часть состава суда: ")
 
         self.radio_yes = QRadioButton("Да")
         self.radio_no = QRadioButton("Нет")
@@ -56,7 +57,10 @@ class IntroBlock(QGroupBox):
 
         self.radio_yes.setChecked(state.use_custom_intro)
         self.radio_no.setChecked(not state.use_custom_intro)
-        self.text_edit.setPlainText(state.custom_intro_text or "")
+        if state.custom_intro_html:
+            self.text_edit.setHtml(state.custom_intro_html)
+        else:
+            self.text_edit.setPlainText(state.custom_intro_text or "")
         self.text_edit.setVisible(state.use_custom_intro)
 
         self.radio_yes.blockSignals(False)
@@ -66,6 +70,47 @@ class IntroBlock(QGroupBox):
     def save_to_state(self, state):
         state.use_custom_intro = self.radio_yes.isChecked()
         state.custom_intro_text = self.text_edit.toPlainText().strip()
+        state.custom_intro_html = self.text_edit.toHtml()
+        state.custom_intro_segments = self._extract_rich_segments()
 
     def _on_mode_changed(self):
         self.text_edit.setVisible(self.radio_yes.isChecked())
+
+    def _extract_rich_segments(self):
+        segments = []
+
+        document = self.text_edit.document()
+        block = document.begin()
+
+        first_block = True
+
+        while block.isValid():
+            if not first_block:
+                segments.append({
+                    "text": "\n",
+                    "bold": False,
+                })
+
+            iterator = block.begin()
+
+            while not iterator.atEnd():
+                fragment = iterator.fragment()
+
+                if fragment.isValid():
+                    text = fragment.text()
+
+                    if text:
+                        char_format = fragment.charFormat()
+                        is_bold = char_format.fontWeight() >= QFont.Bold
+
+                        segments.append({
+                            "text": text,
+                            "bold": is_bold,
+                        })
+
+                iterator += 1
+
+            first_block = False
+            block = block.next()
+
+        return segments

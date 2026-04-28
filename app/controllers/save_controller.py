@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import re
+from datetime import datetime
 
 
 class SaveController(object):
@@ -28,15 +29,17 @@ class SaveController(object):
         case_number = self.state.case_number.value or "без номера"
 
         defendant = self.state.selected_defendant
-        lawyer = self.state.selected_lawyer
+        if defendant and defendant.fio:
+            defendant_first_word = defendant.fio.strip().split()[0]
+        else:
+            defendant_first_word = "без подсудимого"
 
-        defendant_text = defendant.fio if defendant else "без подсудимого"
-        lawyer_text = lawyer.fio if lawyer else "без адвоката"
+        timestamp = datetime.now().strftime("%d.%m.%Y_%H-%M-%S")
 
-        name = "Постановление оплата адвоката {0} {1} {2}.docx".format(
+        name = "{0} {1} {2}.docx".format(
             case_number,
-            defendant_text,
-            lawyer_text,
+            defendant_first_word,
+            timestamp,
         )
 
         return self._sanitize_file_name(name)

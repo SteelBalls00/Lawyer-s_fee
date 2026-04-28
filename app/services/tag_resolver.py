@@ -335,3 +335,43 @@ class TagResolver(object):
             return "hl-block"
 
         return "hl-other"
+
+    def render_rich_segments(self, rich_segments, context):
+        """
+        Для Word: принимает куски текста с признаком bold
+        и дополнительно обрабатывает теги внутри этих кусков.
+        """
+        result = []
+
+        for segment in rich_segments or []:
+            text = segment.get("text") or ""
+            inherited_bold = bool(segment.get("bold"))
+
+            result.extend(
+                self.render_segments(
+                    text,
+                    context,
+                    inherited_bold=inherited_bold,
+                )
+            )
+
+        return result
+
+    def render_rich_segments_html(self, rich_segments, context):
+        """
+        Для предпросмотра: сохраняет жирность текста, вставленного в QTextEdit.
+        """
+        parts = []
+
+        for segment in rich_segments or []:
+            text = segment.get("text") or ""
+            is_bold = bool(segment.get("bold"))
+
+            html_text = self.render_html(text, context)
+
+            if is_bold:
+                html_text = "<b>{0}</b>".format(html_text)
+
+            parts.append(html_text)
+
+        return "".join(parts)

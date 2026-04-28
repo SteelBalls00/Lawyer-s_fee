@@ -78,6 +78,10 @@ class ContextBuilder(object):
 
             # Вводная часть
             "вводная часть": self._build_intro_text(state),
+            "сведения о подсудимом во вводной части": self._build_defendant_intro_text(state),
+            "данные подсудимого во вводной части": self._build_defendant_intro_text(state),
+            "__use_custom_intro": state.use_custom_intro,
+            "__custom_intro_segments": state.custom_intro_segments,
 
             # Подсудимый
             "подсудимый": defendant_fio,
@@ -183,7 +187,11 @@ class ContextBuilder(object):
             "государственного обвинителя {гос обвинитель тп ио bold},\n"
             "подсудимого {подсудимый тп ио bold},\n"
             "его защитника – адвоката {адвокат тп ио bold},\n"
-            "рассмотрев в открытом судебном заседании уголовное дело в отношении:\n"
+            "рассмотрев в открытом судебном заседании уголовное дело в отношении:"
+        )
+
+    def _build_defendant_intro_text(self, state):
+        return (
             "{подсудимый тп bold}, {родился пол} {дата рождения} в {уроженец},\n"
             "обвиняемого в совершении преступления, предусмотренного {основная статья},"
         )

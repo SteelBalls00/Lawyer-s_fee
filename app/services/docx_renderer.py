@@ -102,6 +102,17 @@ class DocxRenderer(object):
         if "{" not in original_text or "}" not in original_text:
             return
 
+        if self._is_custom_intro_placeholder(original_text, context):
+            rich_segments = context.get("__custom_intro_segments") or []
+
+            if rich_segments:
+                segments = self.tag_resolver.render_rich_segments(
+                    rich_segments,
+                    context,
+                )
+                self._set_paragraph_segments(paragraph, segments)
+                return
+
         rendered_text = self.tag_resolver.render(original_text, context)
         rendered_text = self._clean_xml_text(rendered_text)
 
@@ -115,19 +126,20 @@ class DocxRenderer(object):
         segments = self.tag_resolver.render_segments(original_text, context)
         self._set_paragraph_segments(paragraph, segments)
 
-    def _set_paragraph_segments(self, paragraph, segments):
-        """
-        Заменяет текст абзаца на набор run-ов.
-        Нужен для поддержки {тег bold}.
-        """
+    @staticmethod
+    def _is_custom_intro_placeholder(text, context):
+        if not context.get("__use_custom_intro"):
+            return False
 
+        return (text or "").strip().lower() == "{вводная часть}"
+
+    def _set_paragraph_segments(self, paragraph, segments):
         if not segments:
             self._set_paragraph_text(paragraph, "")
             return
 
         base_run = paragraph.runs[0] if paragraph.runs else paragraph.add_run("")
 
-        # Очищаем существующие runs
         for run in paragraph.runs:
             run.text = ""
 
@@ -145,16 +157,13 @@ class DocxRenderer(object):
                 first = False
             else:
                 run = paragraph.add_run()
-
                 try:
                     run.style = base_run.style
                 except Exception:
                     pass
 
             run.text = text
-
-            if is_bold:
-                run.bold = True
+            run.bold = True if is_bold else False
 
     @staticmethod
     def _get_paragraph_text(paragraph):
