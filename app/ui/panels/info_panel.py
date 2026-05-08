@@ -13,9 +13,11 @@ from app.ui.blocks.case_info_block import CaseInfoBlock
 from app.ui.blocks.defendant_block import DefendantBlock
 from app.ui.blocks.intro_block import IntroBlock
 from app.ui.blocks.lawyer_block import LawyerBlock
+from app.ui.blocks.prosecution_opinion_block import ProsecutionOpinionBlock
 from app.ui.blocks.payment_rule_block import PaymentRuleBlock
 from app.ui.blocks.services_block import ServicesBlock
 from app.ui.blocks.extra_decrees_block import ExtraDecreesBlock
+from app.ui.blocks.recovery_mode_block import RecoveryModeBlock
 from app.ui.blocks.total_block import TotalBlock
 
 
@@ -40,12 +42,14 @@ class InfoPanel(QWidget):
         self.intro_block = IntroBlock()
         self.defendant_block = DefendantBlock()
         self.lawyer_block = LawyerBlock()
+        self.prosecution_opinion_block = ProsecutionOpinionBlock()
         self.payment_rule_block = PaymentRuleBlock(payment_calculator=self.payment_calculator,)
         self.services_block = ServicesBlock(
             state=self.state,
             payment_calculator=self.payment_calculator,
         )
         self.extra_decrees_block = ExtraDecreesBlock()
+        self.recovery_mode_block = RecoveryModeBlock()
         self.total_block = TotalBlock(payment_calculator=self.payment_calculator)
 
         content_widget = QWidget()
@@ -55,9 +59,11 @@ class InfoPanel(QWidget):
         content_layout.addWidget(self.intro_block)
         content_layout.addWidget(self.defendant_block)
         content_layout.addWidget(self.lawyer_block)
+        content_layout.addWidget(self.prosecution_opinion_block)
         content_layout.addWidget(self.payment_rule_block)
         content_layout.addWidget(self.services_block)
         content_layout.addWidget(self.extra_decrees_block)
+        content_layout.addWidget(self.recovery_mode_block)
         content_layout.addWidget(self.total_block)
         content_layout.addStretch(1)
         content_widget.setLayout(content_layout)
@@ -78,10 +84,12 @@ class InfoPanel(QWidget):
         self.intro_block.data_changed.connect(self._on_common_data_changed)
         self.defendant_block.data_changed.connect(self._on_common_data_changed)
         self.lawyer_block.data_changed.connect(self._on_common_data_changed)
+        self.prosecution_opinion_block.data_changed.connect(self._on_common_data_changed)
 
         self.payment_rule_block.data_changed.connect(self._on_payment_rule_changed)
         self.services_block.data_changed.connect(self._on_services_changed)
         self.extra_decrees_block.data_changed.connect(self._on_extra_decrees_changed)
+        self.recovery_mode_block.data_changed.connect(self._on_common_data_changed)
 
     def _on_search_requested(self, case_number: str):
         if not case_number:
@@ -145,9 +153,11 @@ class InfoPanel(QWidget):
         self.intro_block.load_from_state(self.state)
         self.defendant_block.load_from_state(self.state)
         self.lawyer_block.load_from_state(self.state)
+        self.prosecution_opinion_block.load_from_state(self.state)
         self.payment_rule_block.load_from_state(self.state)
         self.services_block.load_from_state(self.state)
         self.extra_decrees_block.load_from_state(self.state)
+        self.recovery_mode_block.load_from_state(self.state)
         self.total_block.load_from_state(self.state)
 
     def save_to_state(self):
@@ -155,6 +165,8 @@ class InfoPanel(QWidget):
         self.intro_block.save_to_state(self.state)
         self.defendant_block.save_to_state(self.state)
         self.lawyer_block.save_to_state(self.state)
+        self.prosecution_opinion_block.save_to_state(self.state)
         self.payment_rule_block.save_to_state(self.state)
         self.services_block.save_to_state(self.state)
         self.extra_decrees_block.save_to_state(self.state)
+        self.recovery_mode_block.save_to_state(self.state)

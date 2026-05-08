@@ -65,3 +65,11 @@ def format_russian_dates_list(dates):
     cleaned_dates.sort()
 
     return ", ".join(format_russian_date(item) for item in cleaned_dates)
+
+
+def format_dates_list_numeric(dates):
+    """Возвращает все даты перечисленные через запятую в формате dd.mm.yyyy."""
+    cleaned_dates = [item for item in dates if item is not None]
+    cleaned_dates.sort()
+
+    return ", ".join(item.strftime("%d.%m.%Y") for item in cleaned_dates)

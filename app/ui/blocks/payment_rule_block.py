@@ -9,12 +9,14 @@ from PyQt5.QtWidgets import (
     QLabel,
     QVBoxLayout,
     QHBoxLayout,
+    QWidget,
 )
 
 from app.constants import (
     PAYMENT_RULE_OPTIONS,
     PAYMENT_RULE_DESCRIPTIONS_SHORT,
     PAYMENT_RULE_DESCRIPTIONS_FULL,
+    PAYMENT_RULE_GROUNDS,
 )
 from app.services.money_to_text import format_money
 from app.ui.widgets.no_wheel_combo_box import NoWheelComboBox
@@ -55,17 +57,29 @@ class PaymentRuleBlock(QGroupBox):
         checks_row.addWidget(self.experience_checkbox)
         checks_row.addStretch(1)
 
+        # Контейнер для галочек оснований
+        self._grounds_checkboxes = []
+        self.grounds_widget = QWidget()
+        self.grounds_layout = QVBoxLayout()
+        self.grounds_layout.setContentsMargins(0, 0, 0, 0)
+        self.grounds_widget.setLayout(self.grounds_layout)
+
         root = QVBoxLayout()
         root.addWidget(self.letter_combo)
+        root.addWidget(self.grounds_widget)
         root.addWidget(self.rule_label)
         root.addLayout(checks_row)
 
         self.setLayout(root)
 
     def _connect_signals(self):
-        self.letter_combo.currentIndexChanged.connect(self._emit_data_changed)
+        self.letter_combo.currentIndexChanged.connect(self._on_letter_changed)
         self.region_checkbox.toggled.connect(self._emit_data_changed)
         self.experience_checkbox.toggled.connect(self._emit_data_changed)
+
+    def _on_letter_changed(self, _index):
+        self._refresh_grounds_checkboxes()
+        self._emit_data_changed()
 
     def _emit_data_changed(self):
         if self._loading:
@@ -94,12 +108,41 @@ class PaymentRuleBlock(QGroupBox):
         self.region_checkbox.blockSignals(False)
         self.experience_checkbox.blockSignals(False)
 
+        # Обновляем галочки оснований (уже без blockSignals — внутри метода guard)
+        self._refresh_grounds_checkboxes(checked=list(state.payment_rule.grounds))
+
         self._loading = False
 
     def save_to_state(self, state):
         state.payment_rule.letter = self.letter_combo.currentData()
         state.payment_rule.add_region_20 = self.region_checkbox.isChecked()
         state.payment_rule.add_experience_30 = self.experience_checkbox.isChecked()
+        state.payment_rule.grounds = self._get_checked_grounds()
+
+    def _refresh_grounds_checkboxes(self, checked=None):
+        """Пересоздаёт галочки оснований для текущей буквы подпункта."""
+        # Удалить старые галочки
+        for cb in self._grounds_checkboxes:
+            cb.toggled.disconnect()
+            self.grounds_layout.removeWidget(cb)
+            cb.deleteLater()
+        self._grounds_checkboxes = []
+
+        letter = self.letter_combo.currentData() or ""
+        grounds = PAYMENT_RULE_GROUNDS.get(letter, [])
+
+        for text in grounds:
+            cb = QCheckBox(text)
+            cb.setChecked(checked is not None and text in checked)
+            cb.toggled.connect(self._emit_data_changed)
+            self.grounds_layout.addWidget(cb)
+            self._grounds_checkboxes.append(cb)
+
+        self.grounds_widget.setVisible(bool(grounds))
+
+    def _get_checked_grounds(self):
+        """Возвращает список текстов отмеченных галочек оснований."""
+        return [cb.text() for cb in self._grounds_checkboxes if cb.isChecked()]
 
     def _refresh_combo_items(self, reference_date):
         for index in range(self.letter_combo.count()):

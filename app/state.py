@@ -71,6 +71,7 @@ class PaymentRule:
     letter: str = "A"
     add_region_20: bool = True
     add_experience_30: bool = True
+    grounds: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -120,6 +121,13 @@ class AppState:
     use_extra_decrees: bool = False
     extra_decrees: List[ExtraDecreeRow] = field(default_factory=list)
 
+    # Мнение сторон о взыскании
+    prosecutor_proposes_recovery: bool = True   # True = взыскать, False = освободить
+    defendant_objected: bool = True             # True = возражал, False = не возражал
+
+    # Режим взыскания/освобождения
+    recovery_mode: str = "recovery"  # "recovery", "exempt_insolvency", "exempt_special"
+
     def reset_case_related_data(self) -> None:
         self.case_card = CaseCard()
 
@@ -149,6 +157,10 @@ class AppState:
 
         self.use_extra_decrees = False
         self.extra_decrees = []
+
+        self.prosecutor_proposes_recovery = True
+        self.defendant_objected = True
+        self.recovery_mode = "recovery"
 
     @property
     def selected_defendant(self) -> Optional[DefendantCard]:
