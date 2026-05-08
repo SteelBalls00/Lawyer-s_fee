@@ -60,11 +60,21 @@ class PreviewRenderer(object):
             )
         else:
             rendered = self.tag_resolver.render_html(text, context)
+
         align = self._get_alignment(paragraph)
 
+        # Читаем отступ первой строки из docx (в EMU, 1pt = 12700 EMU)
+        fli = paragraph.paragraph_format.first_line_indent
+        if fli and fli > 0:
+            indent_pt = fli / 12700
+            indent_style = "text-indent:{0:.1f}pt;".format(indent_pt)
+        else:
+            indent_style = ""
+
         return (
-            '<p class="doc-paragraph" style="text-align:{0};">{1}</p>'.format(
+            '<p class="doc-paragraph" style="text-align:{0};{1}">{2}</p>'.format(
                 align,
+                indent_style,
                 rendered,
             )
         )
@@ -145,7 +155,7 @@ class PreviewRenderer(object):
         background: #ffffff;
         border: 1px solid #d7dde5;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-        padding: 52px 62px;
+        padding: 20px 62px;
         color: #1f2933;
         font-family: "Times New Roman", serif;
         font-size: 14pt;

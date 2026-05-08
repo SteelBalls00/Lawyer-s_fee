@@ -53,7 +53,7 @@ class MainWindow(QMainWindow):
         toolbar = self.addToolBar("Документ")
         toolbar.setMovable(False)
         toolbar.addAction(self.save_docx_action)
-        toolbar.addAction(self.check_template_action)
+        # toolbar.addAction(self.check_template_action)
 
     def _build_ui(self):
         self.info_panel = InfoPanel(
