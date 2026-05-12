@@ -21,7 +21,6 @@ from app.constants import LAWYER_SERVICE_TYPES
 from app.state import ServiceRow
 from app.ui.widgets.no_wheel_combo_box import NoWheelComboBox
 from app.services.money_to_text import to_decimal_money, format_money_for_edit, format_money
-from app.ui.widgets.date_auto_delegate import DateAutoDelegate
 
 
 class ServicesBlock(QGroupBox):
@@ -44,9 +43,9 @@ class ServicesBlock(QGroupBox):
         self.table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.table.verticalHeader().setVisible(False)
         self.table.setAlternatingRowColors(False)
+        self.table.verticalHeader().setDefaultSectionSize(28)
         self.table.setColumnWidth(0, 88)
         self.table.setColumnWidth(2, 78)
-        self.table.setItemDelegateForColumn(0, DateAutoDelegate(self.table))
 
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.Fixed)
@@ -200,12 +199,6 @@ class ServicesBlock(QGroupBox):
         column = item.column()
 
         if column == 0:
-            text = item.text().strip()
-            formatted = self._auto_format_date(text)
-            if text != formatted:
-                self._loading = True
-                item.setText(formatted)
-                self._loading = False
             self._loading = True
             self._recalculate_row_amount(row)
             self._loading = False
@@ -312,16 +305,6 @@ class ServicesBlock(QGroupBox):
         self.summary_label.setText(
             "Число дней {0}, Сумма: {1}".format(rows_count, format_money(total))
         )
-
-    @staticmethod
-    def _auto_format_date(text):
-        """Автоматически расставляет точки в дате по мере ввода цифр."""
-        digits = "".join(ch for ch in text if ch.isdigit())[:8]
-        if len(digits) <= 2:
-            return digits
-        if len(digits) <= 4:
-            return digits[:2] + "." + digits[2:]
-        return digits[:2] + "." + digits[2:4] + "." + digits[4:]
 
     @staticmethod
     def _clean_money_text(text):

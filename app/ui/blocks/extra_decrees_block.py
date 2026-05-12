@@ -21,7 +21,7 @@ from app.constants import EXTRA_DECREE_SOURCES
 from app.state import ExtraDecreeRow
 from app.ui.widgets.no_wheel_combo_box import NoWheelComboBox
 from app.services.money_to_text import to_decimal_money, format_money_for_edit
-from app.ui.widgets.date_auto_delegate import DateAutoDelegate
+
 
 
 class ExtraDecreesBlock(QGroupBox):
@@ -53,9 +53,9 @@ class ExtraDecreesBlock(QGroupBox):
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.table.verticalHeader().setVisible(False)
+        self.table.verticalHeader().setDefaultSectionSize(28)
         self.table.setColumnWidth(1, 105)
         self.table.setColumnWidth(2, 78)
-        self.table.setItemDelegateForColumn(1, DateAutoDelegate(self.table))
 
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.Stretch)
@@ -160,15 +160,7 @@ class ExtraDecreesBlock(QGroupBox):
         if self._loading:
             return
 
-        if item.column() == 1:
-            text = item.text().strip()
-            formatted = self._auto_format_date(text)
-            if text != formatted:
-                self._loading = True
-                item.setText(formatted)
-                self._loading = False
-
-        elif item.column() == 2:
+        if item.column() == 2:
             text = item.text().strip()
             cleaned = self._clean_money_text(text)
             if text != cleaned:
@@ -238,16 +230,6 @@ class ExtraDecreesBlock(QGroupBox):
             return to_decimal_money("0")
 
         return to_decimal_money(item.text())
-
-    @staticmethod
-    def _auto_format_date(text):
-        """Автоматически расставляет точки в дате по мере ввода цифр."""
-        digits = "".join(ch for ch in text if ch.isdigit())[:8]
-        if len(digits) <= 2:
-            return digits
-        if len(digits) <= 4:
-            return digits[:2] + "." + digits[2:]
-        return digits[:2] + "." + digits[2:4] + "." + digits[4:]
 
     @staticmethod
     def _clean_money_text(text):
