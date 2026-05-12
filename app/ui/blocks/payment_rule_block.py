@@ -60,6 +60,7 @@ class PaymentRuleBlock(QGroupBox):
         # Контейнер для галочек оснований
         self._grounds_checkboxes = []
         self.grounds_widget = QWidget()
+        self.grounds_widget.setStyleSheet("background: transparent;")
         self.grounds_layout = QVBoxLayout()
         self.grounds_layout.setContentsMargins(0, 0, 0, 0)
         self.grounds_widget.setLayout(self.grounds_layout)

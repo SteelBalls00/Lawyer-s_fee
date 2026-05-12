@@ -388,36 +388,23 @@ class MainWindow(QMainWindow):
             QCheckBox::indicator {
                 width: 14px;
                 height: 14px;
-                border: 1px solid #8fa3b8;
-                background-color: #ffffff;
+                border: none;
+                image: url(resources/checkbox_unchecked.svg);
             }
 
             QCheckBox::indicator:checked {
                 image: url(resources/checkbox_checked.svg);
-                border: none;
-                background-color: transparent;
-            }
-
-            QCheckBox::indicator:hover {
-                border-color: #2c5282;
             }
 
             QRadioButton::indicator {
                 width: 14px;
                 height: 14px;
-                border: 1px solid #8fa3b8;
-                border-radius: 7px;
-                background-color: #ffffff;
+                border: none;
+                image: url(resources/radio_unchecked.svg);
             }
 
             QRadioButton::indicator:checked {
                 image: url(resources/radio_checked.svg);
-                border: none;
-                background-color: transparent;
-            }
-
-            QRadioButton::indicator:hover {
-                border-color: #2c5282;
             }
 
             /* ═══════════════════════════════════════════
