@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# PyInstaller
+build/
+dist/
+*.spec
+
+# PyCharm
+.idea/
+
+# Локальные зависимости
+fb_include/
+pymorphy2_dicts_ru/
