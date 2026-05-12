@@ -161,6 +161,11 @@ class DocxRenderer(object):
                     run.style = base_run.style
                 except Exception:
                     pass
+                # Копируем шрифт из базового run-а (размер, гарнитура)
+                if base_run.font.size:
+                    run.font.size = base_run.font.size
+                if base_run.font.name:
+                    run.font.name = base_run.font.name
 
             run.text = text
             run.bold = True if is_bold else False
