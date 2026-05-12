@@ -68,7 +68,7 @@ class LawyerRequisites:
 
 @dataclass
 class PaymentRule:
-    letter: str = "A"
+    letter: str = "G"
     add_region_20: bool = True
     add_experience_30: bool = True
     grounds: List[str] = field(default_factory=list)

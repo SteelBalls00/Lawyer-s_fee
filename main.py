@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # pyinstaller --onedir --noconsole --name AdvokatOplata --clean --add-data "config.ini;." --add-data "payment_to_lawyers.txt;." --add-data "template_01.docx;." --add-data ".venv\Lib\site-packages\pymorphy2_dicts_ru\data;pymorphy2_dicts_ru\data" --hidden-import=pymorphy2_dicts_ru --hidden-import=pymorphy2 --hidden-import=fdb --hidden-import=docx main.py
+# pyinstaller --onedir --noconsole --name AdvokatOplata --clean --add-data "lawyer_fee.ico;." --icon=lawyer_fee.ico --add-data "config.ini;." --add-data "payment_to_lawyers.txt;." --add-data "template_01.docx;." --add-data "resources;resources" --add-data ".venv\Lib\site-packages\pymorphy2_dicts_ru\data;pymorphy2_dicts_ru\data" --hidden-import=pymorphy2_dicts_ru --hidden-import=pymorphy2 --hidden-import=fdb --hidden-import=docx main.py
 
 import os
 import sys

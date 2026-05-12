@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
+import os
+import sys
 
 from PyQt5.QtCore import Qt, QUrl
-from PyQt5.QtGui import QDesktopServices
+from PyQt5.QtGui import QDesktopServices, QIcon
 from PyQt5.QtWidgets import (
     QAction,
     QFileDialog,
@@ -36,6 +38,15 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(WINDOW_TITLE)
         self.resize(1600, 900)
 
+        def _get_base_path():
+            if getattr(sys, 'frozen', False):
+                return sys._MEIPASS  # путь внутри скомпилированного приложения
+            return os.path.dirname(os.path.abspath(sys.argv[0]))
+
+        icon_path = os.path.join(_get_base_path(), 'lawyer_fee.ico')
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
+
         self._apply_style()
         self._build_toolbar()
         self._build_ui()
@@ -53,7 +64,7 @@ class MainWindow(QMainWindow):
         toolbar = self.addToolBar("Документ")
         toolbar.setMovable(False)
         toolbar.addAction(self.save_docx_action)
-        # toolbar.addAction(self.check_template_action)
+        toolbar.addAction(self.check_template_action)
 
     def _build_ui(self):
         self.info_panel = InfoPanel(
@@ -229,7 +240,7 @@ class MainWindow(QMainWindow):
                 border: 1px solid transparent;
                 min-height: 28px;
                 padding: 4px 14px;
-                font-size: 12px;
+                font-size: 16px;
                 font-weight: bold;
                 letter-spacing: 0.3px;
             }

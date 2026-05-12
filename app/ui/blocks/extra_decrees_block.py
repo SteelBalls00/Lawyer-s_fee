@@ -21,7 +21,7 @@ from app.constants import EXTRA_DECREE_SOURCES
 from app.state import ExtraDecreeRow
 from app.ui.widgets.no_wheel_combo_box import NoWheelComboBox
 from app.services.money_to_text import to_decimal_money, format_money_for_edit
-
+from app.ui.widgets.date_auto_delegate import DateAutoDelegate
 
 
 class ExtraDecreesBlock(QGroupBox):
@@ -55,6 +55,7 @@ class ExtraDecreesBlock(QGroupBox):
         self.table.verticalHeader().setVisible(False)
         self.table.setColumnWidth(1, 105)
         self.table.setColumnWidth(2, 78)
+        self.table.setItemDelegateForColumn(1, DateAutoDelegate(self.table))
 
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.Stretch)

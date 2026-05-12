@@ -21,6 +21,7 @@ from app.constants import LAWYER_SERVICE_TYPES
 from app.state import ServiceRow
 from app.ui.widgets.no_wheel_combo_box import NoWheelComboBox
 from app.services.money_to_text import to_decimal_money, format_money_for_edit, format_money
+from app.ui.widgets.date_auto_delegate import DateAutoDelegate
 
 
 class ServicesBlock(QGroupBox):
@@ -45,6 +46,7 @@ class ServicesBlock(QGroupBox):
         self.table.setAlternatingRowColors(False)
         self.table.setColumnWidth(0, 88)
         self.table.setColumnWidth(2, 78)
+        self.table.setItemDelegateForColumn(0, DateAutoDelegate(self.table))
 
         header = self.table.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.Fixed)
