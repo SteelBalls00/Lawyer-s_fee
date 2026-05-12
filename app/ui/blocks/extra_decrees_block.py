@@ -53,7 +53,6 @@ class ExtraDecreesBlock(QGroupBox):
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.table.verticalHeader().setVisible(False)
-        self.table.verticalHeader().setDefaultSectionSize(28)
         self.table.setColumnWidth(1, 105)
         self.table.setColumnWidth(2, 78)
 

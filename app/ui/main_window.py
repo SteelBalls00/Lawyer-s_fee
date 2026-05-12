@@ -322,6 +322,12 @@ class MainWindow(QMainWindow):
                 background-color: #dce8f0;
             }
 
+            QComboBox::down-arrow {
+                image: url(resources/arrow_down.svg);
+                width: 8px;
+                height: 5px;
+            }
+
 
             QComboBox QAbstractItemView {
                 background-color: #ffffff;
@@ -387,8 +393,9 @@ class MainWindow(QMainWindow):
             }
 
             QCheckBox::indicator:checked {
-                background-color: #2c5282;
-                border-color: #1e3a5f;
+                image: url(resources/checkbox_checked.svg);
+                border: none;
+                background-color: transparent;
             }
 
             QCheckBox::indicator:hover {
@@ -404,8 +411,9 @@ class MainWindow(QMainWindow):
             }
 
             QRadioButton::indicator:checked {
-                border: 4px solid #2c5282;
-                background-color: #f5f7fa;
+                image: url(resources/radio_checked.svg);
+                border: none;
+                background-color: transparent;
             }
 
             QRadioButton::indicator:hover {

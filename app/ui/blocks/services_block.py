@@ -43,7 +43,6 @@ class ServicesBlock(QGroupBox):
         self.table.setSelectionMode(QAbstractItemView.SingleSelection)
         self.table.verticalHeader().setVisible(False)
         self.table.setAlternatingRowColors(False)
-        self.table.verticalHeader().setDefaultSectionSize(28)
         self.table.setColumnWidth(0, 88)
         self.table.setColumnWidth(2, 78)
 
