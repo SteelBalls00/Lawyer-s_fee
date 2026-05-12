@@ -15,6 +15,22 @@ from app.services.money_to_text import (
 )
 
 
+# Добавить как отдельную функцию перед классом ContextBuilder:
+def _days_word(n):
+    """Возвращает число + правильную форму слова 'день'."""
+    last_two = n % 100
+    last_one = n % 10
+    if 11 <= last_two <= 14:
+        word = "дней"
+    elif last_one == 1:
+        word = "день"
+    elif 2 <= last_one <= 4:
+        word = "дня"
+    else:
+        word = "дней"
+    return "{0} {1}".format(n, word)
+
+
 class ContextBuilder(object):
     def __init__(self, payment_calculator):
         self.payment_calculator = payment_calculator
@@ -136,6 +152,7 @@ class ContextBuilder(object):
             "вознаграждение с процентами": format_money(reward_with_coefficients),
 
             "количество услуг": str(len(state.services)),
+            "количество дней": _days_word(len(state.services)),
             "вознаграждение за услуги": format_money(services_total),
             "вознаграждение за услуги прописью": money_words_only(services_total),
             "вознаграждение за услуги рублей копеек": money_units_text(services_total),
