@@ -21,6 +21,11 @@ class MorphologyService(object):
     def __init__(self):
         dict_path = self._get_pymorphy2_dict_path()
         self.morph = pymorphy2.MorphAnalyzer(path=dict_path)
+        # Опциональный кеш слов — устанавливается снаружи после инициализации
+        self.word_cache = None
+
+    # Обратный маппинг: case_tag (gent/datv/…) → case_short (рп/дп/…)
+    _CASE_TAG_TO_SHORT = {v: k for k, v in CASE_MAP.items()}
 
     @staticmethod
     def _get_pymorphy2_dict_path():
@@ -86,17 +91,25 @@ class MorphologyService(object):
         gender = self._detect_gender(parts)
 
         if initials:
-            return self._decline_fio_with_initials(parts, case_tag, gender)
+            return self._decline_fio_with_initials(parts, case_tag, gender, case_short)
 
         result_name = []
-
         for part in parts:
             if "." in part:
                 result_name.append(part)
             else:
-                result_name.append(self._decline_word(part, case_tag, gender))
+                declined = self._decline_fio_word_cached(part, case_short, case_tag, gender)
+                result_name.append(declined)
 
         return " ".join(result_name)
+
+    def _decline_fio_word_cached(self, word, case_short, case_tag, gender):
+        """Склоняет одно слово ФИО, проверяя кеш перед pymorphy2."""
+        if self.word_cache:
+            forms = self.word_cache.get_forms(word)
+            if case_short in forms:
+                return forms[case_short]
+        return self._decline_word(word, case_tag, gender)
 
     def to_initials(self, fio):
         fio = (fio or "").strip()
@@ -155,12 +168,14 @@ class MorphologyService(object):
 
         return None
 
-    def _decline_fio_with_initials(self, parts, case_tag, gender):
+    def _decline_fio_with_initials(self, parts, case_tag, gender, case_short=None):
         if not parts:
             return ""
 
         surname = parts[0]
-        declined_surname = self._decline_word(surname, case_tag, gender)
+        declined_surname = self._decline_fio_word_cached(
+            surname, case_short, case_tag, gender
+        ) if case_short else self._decline_word(surname, case_tag, gender)
 
         if len(parts) == 1:
             return declined_surname
@@ -170,7 +185,6 @@ class MorphologyService(object):
             clean = part.strip()
             if not clean:
                 continue
-
             if "." in clean:
                 initials.append(clean)
             else:

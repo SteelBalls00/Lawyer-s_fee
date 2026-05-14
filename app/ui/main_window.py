@@ -115,41 +115,8 @@ class MainWindow(QMainWindow):
         self.info_panel.status_message.connect(self.statusBar().showMessage)
 
     def refresh_preview(self):
-        self._maybe_load_lawyer_declensions()
         self.preview_panel.update_preview(self.state)
         self._update_amounts_info()
-
-    def _maybe_load_lawyer_declensions(self):
-        """Загружает кешированные правки склонений при смене адвоката."""
-        if not self.declension_cache:
-            return
-
-        lawyer = self.state.selected_lawyer
-        fio = (lawyer.fio if lawyer else "").strip()
-
-        if fio == self._loaded_lawyer_fio:
-            return  # Адвокат не менялся
-
-        self._loaded_lawyer_fio = fio
-
-        # Очищаем старые правки адвоката из state
-        overrides = {k: v for k, v in self.state.declension_overrides.items()
-                     if not k.startswith("адвокат") and not k.startswith("фио адвоката")}
-
-        if fio:
-            case_forms = self.declension_cache.get_by_fio(fio)
-            if case_forms:
-                from app.ui.dialogs.declension_dialog import _make_initials_form
-                for case_short, full_form in case_forms.items():
-                    if not full_form:
-                        continue
-                    io_form = _make_initials_form(full_form)
-                    overrides["адвокат {0}".format(case_short)] = full_form
-                    overrides["адвокат {0} ио".format(case_short)] = io_form
-                    overrides["фио адвоката {0}".format(case_short)] = full_form
-                    overrides["фио адвоката {0} ио".format(case_short)] = io_form
-
-        self.state.declension_overrides = overrides
 
     def _update_amounts_info(self):
         claimed = self.state.lawyer_claimed_amount

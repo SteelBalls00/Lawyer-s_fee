@@ -20,7 +20,7 @@ from app.services.morphology import MorphologyService
 from app.services.tag_resolver import TagResolver
 from app.services.preview_renderer import PreviewRenderer
 from app.services.docx_renderer import DocxRenderer
-from app.services.declension_cache import DeclensionCache
+from app.services.declension_word_cache import DeclensionWordCache
 
 from app.ui.main_window import MainWindow
 
@@ -47,7 +47,9 @@ def main():
     morphology_service = MorphologyService()
     context_builder = ContextBuilder(payment_calculator)
     tag_resolver = TagResolver(morphology_service)
-    declension_cache = DeclensionCache(declensions_path)
+
+    declension_cache = DeclensionWordCache(declensions_path)
+    morphology_service.word_cache = declension_cache
 
     preview_renderer = PreviewRenderer(
         context_builder=context_builder,
