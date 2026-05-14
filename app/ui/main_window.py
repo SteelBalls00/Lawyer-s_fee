@@ -27,6 +27,7 @@ class MainWindow(QMainWindow):
         payment_calculator,
         preview_renderer,
         save_controller,
+        declension_cache=None,
         parent=None,
     ):
         super().__init__(parent)
@@ -36,6 +37,10 @@ class MainWindow(QMainWindow):
         self.payment_calculator = payment_calculator
         self.preview_renderer = preview_renderer
         self.save_controller = save_controller
+        self.declension_cache = declension_cache
+
+        # Отслеживаем ФИО адвоката, чтобы при смене загружать кеш
+        self._loaded_lawyer_fio = None
 
         self.setWindowTitle(WINDOW_TITLE)
         self.resize(1600, 900)
@@ -110,8 +115,41 @@ class MainWindow(QMainWindow):
         self.info_panel.status_message.connect(self.statusBar().showMessage)
 
     def refresh_preview(self):
+        self._maybe_load_lawyer_declensions()
         self.preview_panel.update_preview(self.state)
         self._update_amounts_info()
+
+    def _maybe_load_lawyer_declensions(self):
+        """Загружает кешированные правки склонений при смене адвоката."""
+        if not self.declension_cache:
+            return
+
+        lawyer = self.state.selected_lawyer
+        fio = (lawyer.fio if lawyer else "").strip()
+
+        if fio == self._loaded_lawyer_fio:
+            return  # Адвокат не менялся
+
+        self._loaded_lawyer_fio = fio
+
+        # Очищаем старые правки адвоката из state
+        overrides = {k: v for k, v in self.state.declension_overrides.items()
+                     if not k.startswith("адвокат") and not k.startswith("фио адвоката")}
+
+        if fio:
+            case_forms = self.declension_cache.get_by_fio(fio)
+            if case_forms:
+                from app.ui.dialogs.declension_dialog import _make_initials_form
+                for case_short, full_form in case_forms.items():
+                    if not full_form:
+                        continue
+                    io_form = _make_initials_form(full_form)
+                    overrides["адвокат {0}".format(case_short)] = full_form
+                    overrides["адвокат {0} ио".format(case_short)] = io_form
+                    overrides["фио адвоката {0}".format(case_short)] = full_form
+                    overrides["фио адвоката {0} ио".format(case_short)] = io_form
+
+        self.state.declension_overrides = overrides
 
     def _update_amounts_info(self):
         claimed = self.state.lawyer_claimed_amount
@@ -148,7 +186,6 @@ class MainWindow(QMainWindow):
         )
 
     def _on_open_declensions(self):
-        # Сохраняем текущее состояние формы перед открытием диалога
         self.info_panel.save_to_state()
 
         try:
@@ -156,7 +193,6 @@ class MainWindow(QMainWindow):
         except Exception:
             template_tags = []
 
-        # tag_resolver и morphology доступны через preview_renderer
         tag_resolver = self.preview_renderer.tag_resolver
         morphology = tag_resolver.morphology
 
@@ -167,10 +203,12 @@ class MainWindow(QMainWindow):
             tag_resolver=tag_resolver,
             morphology_service=morphology,
             template_tags=template_tags,
+            declension_cache=self.declension_cache,
             parent=self,
         )
 
         if dialog.exec_() == dialog.Accepted:
+            self._loaded_lawyer_fio = None   # перечитать кеш после правок
             self.refresh_preview()
 
     def _on_check_template(self):

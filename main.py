@@ -20,6 +20,7 @@ from app.services.morphology import MorphologyService
 from app.services.tag_resolver import TagResolver
 from app.services.preview_renderer import PreviewRenderer
 from app.services.docx_renderer import DocxRenderer
+from app.services.declension_cache import DeclensionCache
 
 from app.ui.main_window import MainWindow
 
@@ -30,6 +31,7 @@ def main():
     config_path = os.path.join(base_dir, "config.ini")
     rates_path = os.path.join(base_dir, "payment_to_lawyers.txt")
     template_path = os.path.join(base_dir, "template_01.docx")
+    declensions_path = os.path.join(base_dir, "declensions.ini")
 
     app = QApplication(sys.argv)
 
@@ -45,6 +47,7 @@ def main():
     morphology_service = MorphologyService()
     context_builder = ContextBuilder(payment_calculator)
     tag_resolver = TagResolver(morphology_service)
+    declension_cache = DeclensionCache(declensions_path)
 
     preview_renderer = PreviewRenderer(
         context_builder=context_builder,
@@ -69,6 +72,7 @@ def main():
         payment_calculator=payment_calculator,
         preview_renderer=preview_renderer,
         save_controller=save_controller,
+        declension_cache=declension_cache,
     )
     window.showMaximized()
 
