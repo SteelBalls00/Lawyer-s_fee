@@ -75,6 +75,12 @@ class MainWindow(QMainWindow):
         self.amounts_label.setContentsMargins(12, 0, 12, 0)
         toolbar.addWidget(self.amounts_label)
 
+        toolbar.addSeparator()
+
+        self.declensions_action = QAction("Склонения", self)
+        self.declensions_action.triggered.connect(self._on_open_declensions)
+        toolbar.addAction(self.declensions_action)
+
     def _build_ui(self):
         self.info_panel = InfoPanel(
             state=self.state,
@@ -140,6 +146,32 @@ class MainWindow(QMainWindow):
                 services=services_str,
             )
         )
+
+    def _on_open_declensions(self):
+        # Сохраняем текущее состояние формы перед открытием диалога
+        self.info_panel.save_to_state()
+
+        try:
+            template_tags = self.save_controller.get_template_tags()
+        except Exception:
+            template_tags = []
+
+        # tag_resolver и morphology доступны через preview_renderer
+        tag_resolver = self.preview_renderer.tag_resolver
+        morphology = tag_resolver.morphology
+
+        from app.ui.dialogs.declension_dialog import DeclensionDialog
+
+        dialog = DeclensionDialog(
+            state=self.state,
+            tag_resolver=tag_resolver,
+            morphology_service=morphology,
+            template_tags=template_tags,
+            parent=self,
+        )
+
+        if dialog.exec_() == dialog.Accepted:
+            self.refresh_preview()
 
     def _on_check_template(self):
         self.info_panel.save_to_state()

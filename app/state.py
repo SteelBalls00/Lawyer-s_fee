@@ -128,6 +128,11 @@ class AppState:
     # Режим взыскания/освобождения
     recovery_mode: str = "recovery"  # "recovery", "exempt_insolvency", "exempt_special"
 
+    # Ручные правки склонений ФИО.
+    # Ключ — нормализованный raw_tag вида "подсудимый рп" / "адвокат дп ио".
+    # Значение — отредактированная пользователем строка, заменяющая авто-склонение.
+    declension_overrides: dict = field(default_factory=dict)
+
     def reset_case_related_data(self) -> None:
         self.case_card = CaseCard()
 
@@ -161,6 +166,8 @@ class AppState:
         self.prosecutor_proposes_recovery = True
         self.defendant_objected = True
         self.recovery_mode = "recovery"
+
+        self.declension_overrides = {}
 
     @property
     def selected_defendant(self) -> Optional[DefendantCard]:

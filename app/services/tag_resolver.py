@@ -122,6 +122,15 @@ class TagResolver(object):
         if base_key not in context:
             return "{" + raw_tag + "}"
 
+        # Проверяем ручную правку склонения. Ключ override — нормализованный тег
+        # вида "подсудимый рп" / "адвокат дп ио" (без bold/«пол»).
+        override_key = self._make_override_key(base_key, case_short, initials)
+        overrides = context.get("__declension_overrides") or {}
+        if override_key and override_key in overrides:
+            override_value = overrides[override_key]
+            if override_value:
+                return override_value
+
         value = context.get(base_key, "")
 
         if value is None:
@@ -152,6 +161,42 @@ class TagResolver(object):
             value = self.morphology.to_initials(value)
 
         return value
+
+    @staticmethod
+    def _make_override_key(base_key, case_short, initials):
+        """Строит ключ для словаря declension_overrides.
+
+        Применяется только к FIO-склоняемым сущностям. Если падежа нет — None,
+        потому что без падежа и склонять нечего.
+
+        "фио адвоката" нормализуем в "адвокат" — это один и тот же ФИО,
+        и пользовательская правка должна работать для обеих форм тегов.
+        """
+        FIO_KEYS = (
+            "подсудимый",
+            "адвокат",
+            "фио адвоката",
+            "судья",
+            "секретарь",
+            "гос обвинитель",
+            "гос. обвинитель",
+            "государственный обвинитель",
+        )
+        if base_key not in FIO_KEYS:
+            return None
+        if not case_short and not initials:
+            return None
+
+        # Унификация ключа адвоката
+        if base_key == "фио адвоката":
+            base_key = "адвокат"
+
+        parts = [base_key]
+        if case_short:
+            parts.append(case_short)
+        if initials:
+            parts.append("ио")
+        return " ".join(parts)
 
     def _parse_tag(self, raw_tag):
         parts = raw_tag.split()
