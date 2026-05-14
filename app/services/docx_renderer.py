@@ -67,7 +67,7 @@ class DocxRenderer(object):
         return self._collect_unknown_tags(document, context)
 
     def _process_document(self, document, context):
-        for paragraph in document.paragraphs:
+        for paragraph in list(document.paragraphs):
             self._process_paragraph(paragraph, context)
 
         for table in document.tables:
@@ -78,7 +78,7 @@ class DocxRenderer(object):
             self._process_header_footer(section.footer, context)
 
     def _process_header_footer(self, container, context):
-        for paragraph in container.paragraphs:
+        for paragraph in list(container.paragraphs):
             self._process_paragraph(paragraph, context)
 
         for table in container.tables:
@@ -87,7 +87,7 @@ class DocxRenderer(object):
     def _process_table(self, table, context):
         for row in table.rows:
             for cell in row.cells:
-                for paragraph in cell.paragraphs:
+                for paragraph in list(cell.paragraphs):
                     self._process_paragraph(paragraph, context)
 
                 for nested_table in cell.tables:
@@ -120,7 +120,10 @@ class DocxRenderer(object):
             return
 
         if not rendered_text.strip() and self._paragraph_is_only_tags(original_text):
-            self._set_paragraph_text(paragraph, "")
+            p = paragraph._element
+            parent = p.getparent()
+            if parent is not None:
+                parent.remove(p)
             return
 
         segments = self.tag_resolver.render_segments(original_text, context)

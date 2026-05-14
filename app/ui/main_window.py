@@ -7,10 +7,12 @@ from PyQt5.QtGui import QDesktopServices, QIcon
 from PyQt5.QtWidgets import (
     QAction,
     QFileDialog,
+    QLabel,
     QMainWindow,
     QMessageBox,
     QSplitter,
 )
+from app.services.money_to_text import format_money
 
 from app.constants import WINDOW_TITLE
 from app.ui.panels.info_panel import InfoPanel
@@ -64,7 +66,14 @@ class MainWindow(QMainWindow):
         toolbar = self.addToolBar("Документ")
         toolbar.setMovable(False)
         toolbar.addAction(self.save_docx_action)
-        toolbar.addAction(self.check_template_action)
+        # toolbar.addAction(self.check_template_action)
+        toolbar.addSeparator()
+
+        # Информер по суммам справа от кнопок
+        self.amounts_label = QLabel()
+        self.amounts_label.setTextFormat(Qt.RichText)
+        self.amounts_label.setContentsMargins(12, 0, 12, 0)
+        toolbar.addWidget(self.amounts_label)
 
     def _build_ui(self):
         self.info_panel = InfoPanel(
@@ -96,6 +105,41 @@ class MainWindow(QMainWindow):
 
     def refresh_preview(self):
         self.preview_panel.update_preview(self.state)
+        self._update_amounts_info()
+
+    def _update_amounts_info(self):
+        claimed = self.state.lawyer_claimed_amount
+        services_total = self.payment_calculator.get_services_total(self.state.services)
+
+        claimed_str = format_money(claimed)
+        services_str = format_money(services_total)
+
+        if claimed == services_total and claimed > 0:
+            # Совпадают и не нулевые — зелёный маркер
+            marker = '<span style="color:#7ed99a;">●</span>'
+            sum_color = "#b8e8c5"
+        elif claimed == 0 and services_total == 0:
+            # Ничего ещё не введено — нейтрально
+            marker = '<span style="color:#9aafc0;">○</span>'
+            sum_color = "#dce8f5"
+        else:
+            # Не совпадают — оранжевый маркер
+            marker = '<span style="color:#f5b97a;">●</span>'
+            sum_color = "#ffd0a8"
+
+        self.amounts_label.setText(
+            '{marker} '
+            '<span style="color:#cfd5db;">Заявлено адвокатом:</span> '
+            '<span style="color:{c};font-weight:bold;">{claimed}</span>'
+            '&nbsp;&nbsp;&nbsp;'
+            '<span style="color:#cfd5db;">Сумма услуг:</span> '
+            '<span style="color:{c};font-weight:bold;">{services}</span>'.format(
+                marker=marker,
+                c=sum_color,
+                claimed=claimed_str,
+                services=services_str,
+            )
+        )
 
     def _on_check_template(self):
         self.info_panel.save_to_state()
