@@ -22,6 +22,11 @@ _CAPTION_STYLE = (
     "letter-spacing: 0.4px; padding: 0; margin: 0;"
 )
 
+_CAPTION_STYLE_WARN = (
+    "color: #b85c5c; font-size: 10px; font-weight: 700; "
+    "letter-spacing: 0.4px; padding: 0; margin: 0;"
+)
+
 
 def _caption(text):
     """Создаёт маленький серый заголовок над полем ввода."""
@@ -31,13 +36,14 @@ def _caption(text):
 
 
 def _field_block(caption_text, widget):
-    """Возвращает вертикальный блок: подпись + виджет."""
+    """Возвращает (layout, caption_label). Заголовок отдельно для смены стиля."""
+    lbl = _caption(caption_text)
     box = QVBoxLayout()
     box.setSpacing(1)
     box.setContentsMargins(0, 4, 0, 0)
-    box.addWidget(_caption(caption_text))
+    box.addWidget(lbl)
     box.addWidget(widget)
-    return box
+    return box, lbl
 
 
 class DefendantBlock(QGroupBox):
@@ -80,22 +86,25 @@ class DefendantBlock(QGroupBox):
         # ── Компоновка: пол + дата рождения в одной строке ────────────
         row1 = QHBoxLayout()
         row1.setSpacing(24)
-        sex_block = _field_block("Пол", self.sex_combo)
+        sex_block, self._sex_caption = _field_block("Пол", self.sex_combo)
         self.sex_combo.setMinimumWidth(110)
         row1.addLayout(sex_block, 1)
 
-        birth_block = _field_block("Дата рождения", self.birth_date_edit)
+        birth_block, self._birth_caption = _field_block("Дата рождения", self.birth_date_edit)
         self.birth_date_edit.setMinimumWidth(100)
         row1.addLayout(birth_block, 1)
 
         # ── Уроженец и статья на всю ширину ───────────────────────────
+        native_block, self._native_caption = _field_block("Уроженец", self.native_edit)
+        article_block, self._article_caption = _field_block("Основная статья", self.article_edit)
+
         root = QVBoxLayout()
         root.setSpacing(0)
         root.addLayout(top_form)
         root.addWidget(self.custody_checkbox)
         root.addLayout(row1)
-        root.addLayout(_field_block("Уроженец", self.native_edit))
-        root.addLayout(_field_block("Основная статья", self.article_edit))
+        root.addLayout(native_block)
+        root.addLayout(article_block)
 
         self.setLayout(root)
 
@@ -143,7 +152,19 @@ class DefendantBlock(QGroupBox):
         self.data_changed.emit()
 
     def _on_field_changed(self, *_):
+        self._refresh_field_warnings()
         self.data_changed.emit()
+
+    def _refresh_field_warnings(self):
+        """Подсвечивает красным подписи над пустыми полями."""
+        empties = {
+            self._sex_caption: not self.sex_combo.currentText().strip(),
+            self._birth_caption: not self.birth_date_edit.text().strip(),
+            self._native_caption: not self.native_edit.text().strip(),
+            self._article_caption: not self.article_edit.text().strip(),
+        }
+        for label, is_empty in empties.items():
+            label.setStyleSheet(_CAPTION_STYLE_WARN if is_empty else _CAPTION_STYLE)
 
     def _on_birth_date_changed(self, text):
         if self._updating_date:
@@ -154,6 +175,7 @@ class DefendantBlock(QGroupBox):
             self.birth_date_edit.setText(formatted)
             self.birth_date_edit.setCursorPosition(len(formatted))
         self._updating_date = False
+        self._refresh_field_warnings()
         self.data_changed.emit()
 
     @staticmethod
@@ -201,6 +223,8 @@ class DefendantBlock(QGroupBox):
         self.custody_checkbox.setChecked(d.in_custody)
         self.custody_checkbox.blockSignals(False)
 
+        self._refresh_field_warnings()
+
     def _clear_fields(self):
         self.sex_combo.blockSignals(True)
         self.sex_combo.setCurrentIndex(0)
@@ -212,6 +236,8 @@ class DefendantBlock(QGroupBox):
         self.custody_checkbox.blockSignals(True)
         self.custody_checkbox.setChecked(False)
         self.custody_checkbox.blockSignals(False)
+
+        self._refresh_field_warnings()
 
     def _write_fields_to_defendant(self, index):
         if not (0 <= index < len(self._defendants)):

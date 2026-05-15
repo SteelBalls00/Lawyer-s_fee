@@ -10,6 +10,10 @@ from app.db.queries import (
     U1_GET_SUD_ZASEDANIE_INFO,
     U1_GET_PARTS_INFO,
     U1_GET_PARTS_REQUISITE,
+    M_GET_CASE_INFO,
+    M_GET_DEFENDANTS_INFO,
+    M_GET_SUD_ZASEDANIE_INFO,
+    M_GET_PARTS_INFO,
 )
 
 
@@ -19,6 +23,11 @@ def _to_date(value):
     if isinstance(value, datetime):
         return value.date()
     return value
+
+
+def _is_materials_case(case_number):
+    """Уголовные дела имеют префикс '1-'. Всё остальное — уголовные материалы."""
+    return not (case_number or "").strip().startswith("1-")
 
 
 class CaseRepository(object):
@@ -44,7 +53,11 @@ class CaseRepository(object):
         return query.replace("__CASE_NUMBER__", cls._like_param(case_number))
 
     def get_case_info(self, case_number: str) -> Optional[CaseCard]:
-        query = self._prepare_case_query(U1_GET_CASE_INFO, case_number)
+        if _is_materials_case(case_number):
+            query = self._prepare_case_query(M_GET_CASE_INFO, case_number)
+        else:
+            query = self._prepare_case_query(U1_GET_CASE_INFO, case_number)
+
         row = self.db.fetch_one(query)
         if not row:
             return None
@@ -59,26 +72,35 @@ class CaseRepository(object):
         )
 
     def get_defendants(self, case_number: str) -> List[DefendantCard]:
-        query = self._prepare_case_query(U1_GET_DEFENDANTS_INFO, case_number)
-        rows = self.db.fetch_all(query)
+        is_materials = _is_materials_case(case_number)
+        if is_materials:
+            query = self._prepare_case_query(M_GET_DEFENDANTS_INFO, case_number)
+        else:
+            query = self._prepare_case_query(U1_GET_DEFENDANTS_INFO, case_number)
 
+        rows = self.db.fetch_all(query)
         result = []
         for row in rows:
+            # В материалах нет поля NATIVE (уроженец) — 4 колонки вместо 5
+            native = row[4] if (len(row) > 4 and not is_materials) else ""
             result.append(
                 DefendantCard(
                     fio=row[0] or "",
                     sex=row[1] or "",
                     birth_date=_to_date(row[2]),
                     article=row[3] or "",
-                    native=row[4] or "",
+                    native=native or "",
                 )
             )
         return result
 
     def get_events(self, case_number: str) -> List[EventCard]:
-        query = self._prepare_case_query(U1_GET_SUD_ZASEDANIE_INFO, case_number)
-        rows = self.db.fetch_all(query)
+        if _is_materials_case(case_number):
+            query = self._prepare_case_query(M_GET_SUD_ZASEDANIE_INFO, case_number)
+        else:
+            query = self._prepare_case_query(U1_GET_SUD_ZASEDANIE_INFO, case_number)
 
+        rows = self.db.fetch_all(query)
         result = []
         for row in rows:
             result.append(
@@ -92,9 +114,12 @@ class CaseRepository(object):
         return result
 
     def get_lawyer_names(self, case_number: str) -> List[str]:
-        query = self._prepare_case_query(U1_GET_PARTS_INFO, case_number)
-        rows = self.db.fetch_all(query)
+        if _is_materials_case(case_number):
+            query = self._prepare_case_query(M_GET_PARTS_INFO, case_number)
+        else:
+            query = self._prepare_case_query(U1_GET_PARTS_INFO, case_number)
 
+        rows = self.db.fetch_all(query)
         result = []
         for row in rows:
             fio = (row[0] or "").strip()
