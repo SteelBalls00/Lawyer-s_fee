@@ -21,6 +21,7 @@ from app.services.tag_resolver import TagResolver
 from app.services.preview_renderer import PreviewRenderer
 from app.services.docx_renderer import DocxRenderer
 from app.services.declension_word_cache import DeclensionWordCache
+from app.services.user_settings import UserSettings
 
 from app.ui.main_window import MainWindow
 
@@ -32,6 +33,7 @@ def main():
     rates_path = os.path.join(base_dir, "payment_to_lawyers.txt")
     template_path = os.path.join(base_dir, "template_01.docx")
     declensions_path = os.path.join(base_dir, "declensions.ini")
+    settings_path = os.path.join(base_dir, "settings.ini")
 
     app = QApplication(sys.argv)
 
@@ -48,7 +50,13 @@ def main():
     context_builder = ContextBuilder(payment_calculator)
     tag_resolver = TagResolver(morphology_service)
 
-    declension_cache = DeclensionWordCache(declensions_path)
+    user_settings = UserSettings(settings_path)
+    declension_cache = DeclensionWordCache(
+        declensions_path,
+        network_path=user_settings.get_network_declensions_path(),
+    )
+    # Подтянуть свежие склонения из сетевого файла при старте
+    declension_cache.sync_from_network()
     morphology_service.word_cache = declension_cache
 
     preview_renderer = PreviewRenderer(
@@ -75,6 +83,7 @@ def main():
         preview_renderer=preview_renderer,
         save_controller=save_controller,
         declension_cache=declension_cache,
+        user_settings=user_settings,
     )
     window.showMaximized()
 

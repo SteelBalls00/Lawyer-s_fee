@@ -28,6 +28,7 @@ class MainWindow(QMainWindow):
         preview_renderer,
         save_controller,
         declension_cache=None,
+        user_settings=None,
         parent=None,
     ):
         super().__init__(parent)
@@ -38,6 +39,7 @@ class MainWindow(QMainWindow):
         self.preview_renderer = preview_renderer
         self.save_controller = save_controller
         self.declension_cache = declension_cache
+        self.user_settings = user_settings
 
         # Отслеживаем ФИО адвоката, чтобы при смене загружать кеш
         self._loaded_lawyer_fio = None
@@ -217,10 +219,20 @@ class MainWindow(QMainWindow):
 
         default_name = self.save_controller.get_default_file_name()
 
+        # Запомненная директория сохранения
+        last_dir = ""
+        if self.user_settings:
+            last_dir = self.user_settings.get_last_save_dir() or ""
+
+        if last_dir and os.path.isdir(last_dir):
+            initial_path = os.path.join(last_dir, default_name)
+        else:
+            initial_path = default_name
+
         output_path, _ = QFileDialog.getSaveFileName(
             self,
             "Сохранить постановление",
-            default_name,
+            initial_path,
             "Документы Word (*.docx)",
         )
 
@@ -237,6 +249,10 @@ class MainWindow(QMainWindow):
             )
             self.statusBar().showMessage("Ошибка сохранения")
             return
+
+        # Запоминаем директорию сохранения для следующего раза
+        if self.user_settings and saved_path:
+            self.user_settings.set_last_save_dir(os.path.dirname(saved_path))
 
         unknown_tags = self.save_controller.get_last_unknown_tags()
         unresolved_tags = self.save_controller.get_last_unresolved_tags()
