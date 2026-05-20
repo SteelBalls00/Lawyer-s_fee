@@ -17,6 +17,10 @@ from app.db.queries import (
 )
 
 
+SOURCE_U1 = "u1"
+SOURCE_M = "m"
+
+
 def _to_date(value):
     if value is None:
         return None
@@ -25,9 +29,24 @@ def _to_date(value):
     return value
 
 
-def _is_materials_case(case_number):
-    """Уголовные дела имеют префикс '1-'. Всё остальное — уголовные материалы."""
-    return not (case_number or "").strip().startswith("1-")
+def _guess_sources(case_number: str) -> List[str]:
+    """Подсказывает, в каких картотеках искать дело по префиксу номера.
+
+    Возвращает список картотек, в которых имеет смысл искать.
+    Финальное решение (если дело есть в обеих) принимает пользователь.
+    """
+    cn = (case_number or "").strip()
+    if not cn:
+        return []
+
+    # Дела с префиксом "10-" могут быть и в уголовной картотеке, и в материалах
+    if cn.startswith("10-"):
+        return [SOURCE_U1, SOURCE_M]
+    # Префикс "1-" — точно уголовные дела
+    if cn.startswith("1-"):
+        return [SOURCE_U1]
+    # Всё остальное — материалы
+    return [SOURCE_M]
 
 
 class CaseRepository(object):
@@ -52,15 +71,42 @@ class CaseRepository(object):
     def _prepare_case_query(cls, query: str, case_number: str) -> str:
         return query.replace("__CASE_NUMBER__", cls._like_param(case_number))
 
-    def get_case_info(self, case_number: str) -> Optional[CaseCard]:
-        if _is_materials_case(case_number):
-            query = self._prepare_case_query(M_GET_CASE_INFO, case_number)
-        else:
+    # ─── Поиск дела во всех картотеках ──────────────────────────────────
+
+    def find_case_sources(self, case_number: str) -> List[str]:
+        """Возвращает список картотек, где найдено дело с этим номером.
+
+        Сначала проверяет вероятные картотеки по префиксу, при двусмысленности
+        ("10-") опрашивает обе.
+        """
+        candidates = _guess_sources(case_number)
+        found = []
+        for source in candidates:
+            if self._case_exists(case_number, source):
+                found.append(source)
+        return found
+
+    def _case_exists(self, case_number: str, source: str) -> bool:
+        if source == SOURCE_U1:
             query = self._prepare_case_query(U1_GET_CASE_INFO, case_number)
+        else:
+            query = self._prepare_case_query(M_GET_CASE_INFO, case_number)
+        return self.db.fetch_one(query) is not None
+
+    # ─── Основные запросы с явным источником ────────────────────────────
+
+    def get_case_info(self, case_number: str, source: str) -> Optional[CaseCard]:
+        if source == SOURCE_U1:
+            query = self._prepare_case_query(U1_GET_CASE_INFO, case_number)
+        else:
+            query = self._prepare_case_query(M_GET_CASE_INFO, case_number)
 
         row = self.db.fetch_one(query)
         if not row:
             return None
+
+        # У материалов 7-я колонка — sub_type
+        sub_type = row[6] if (source == SOURCE_M and len(row) > 6) else ""
 
         return CaseCard(
             case_id=row[0],
@@ -69,19 +115,19 @@ class CaseRepository(object):
             judge=row[3] or "",
             verdict_date=_to_date(row[4]),
             verdict_name=row[5] or "",
+            sub_type=(sub_type or ""),
         )
 
-    def get_defendants(self, case_number: str) -> List[DefendantCard]:
-        is_materials = _is_materials_case(case_number)
-        if is_materials:
-            query = self._prepare_case_query(M_GET_DEFENDANTS_INFO, case_number)
-        else:
+    def get_defendants(self, case_number: str, source: str) -> List[DefendantCard]:
+        if source == SOURCE_U1:
             query = self._prepare_case_query(U1_GET_DEFENDANTS_INFO, case_number)
+        else:
+            query = self._prepare_case_query(M_GET_DEFENDANTS_INFO, case_number)
 
+        is_materials = (source == SOURCE_M)
         rows = self.db.fetch_all(query)
         result = []
         for row in rows:
-            # В материалах нет поля NATIVE (уроженец) — 4 колонки вместо 5
             native = row[4] if (len(row) > 4 and not is_materials) else ""
             result.append(
                 DefendantCard(
@@ -94,11 +140,11 @@ class CaseRepository(object):
             )
         return result
 
-    def get_events(self, case_number: str) -> List[EventCard]:
-        if _is_materials_case(case_number):
-            query = self._prepare_case_query(M_GET_SUD_ZASEDANIE_INFO, case_number)
-        else:
+    def get_events(self, case_number: str, source: str) -> List[EventCard]:
+        if source == SOURCE_U1:
             query = self._prepare_case_query(U1_GET_SUD_ZASEDANIE_INFO, case_number)
+        else:
+            query = self._prepare_case_query(M_GET_SUD_ZASEDANIE_INFO, case_number)
 
         rows = self.db.fetch_all(query)
         result = []
@@ -113,11 +159,11 @@ class CaseRepository(object):
             )
         return result
 
-    def get_lawyer_names(self, case_number: str) -> List[str]:
-        if _is_materials_case(case_number):
-            query = self._prepare_case_query(M_GET_PARTS_INFO, case_number)
-        else:
+    def get_lawyer_names(self, case_number: str, source: str) -> List[str]:
+        if source == SOURCE_U1:
             query = self._prepare_case_query(U1_GET_PARTS_INFO, case_number)
+        else:
+            query = self._prepare_case_query(M_GET_PARTS_INFO, case_number)
 
         rows = self.db.fetch_all(query)
         result = []
@@ -131,7 +177,6 @@ class CaseRepository(object):
         row = self.db.fetch_one(U1_GET_PARTS_REQUISITE, (lawyer_fio,))
         if not row:
             return None
-
         return LawyerRequisites(
             part_id=row[0],
             fio=row[1] or "",
@@ -144,15 +189,13 @@ class CaseRepository(object):
             corr_account=row[8] or "",
         )
 
-    def get_lawyers_with_requisites(self, case_number: str) -> List[LawyerRequisites]:
-        names = self.get_lawyer_names(case_number)
+    def get_lawyers_with_requisites(self, case_number: str, source: str) -> List[LawyerRequisites]:
+        names = self.get_lawyer_names(case_number, source)
         result = []
-
         for fio in names:
             requisites = self.get_lawyer_requisites(fio)
             if requisites is not None:
                 result.append(requisites)
             else:
                 result.append(LawyerRequisites(fio=fio))
-
         return result

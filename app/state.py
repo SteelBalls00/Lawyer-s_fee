@@ -33,6 +33,7 @@ class CaseCard:
     judge: str = ""
     verdict_date: Optional[date] = None
     verdict_name: str = ""
+    sub_type: str = ""              # только для материалов: предмет ходатайства/представления
 
 
 @dataclass
@@ -101,6 +102,15 @@ class AppState:
     prosecutor: EditableField = field(default_factory=EditableField)
     verdict_date: EditableField = field(default_factory=EditableField)
 
+    # Картотека, из которой загружено дело: "u1" (уголовные дела) или "m" (материалы)
+    case_source: str = ""
+
+    # Предмет представления/ходатайства/жалобы (только для материалов)
+    case_sub_type: EditableField = field(default_factory=EditableField)
+
+    # Предмет рассмотрения (только для материалов): "petition" (ходатайство) или "representation" (представление)
+    petition_or_representation: str = "petition"
+
     defendants: List[DefendantCard] = field(default_factory=list)
     selected_defendant_index: int = 0
 
@@ -144,6 +154,10 @@ class AppState:
         self.secretary = EditableField()
         self.prosecutor = EditableField()
         self.verdict_date = EditableField()
+
+        self.case_source = ""
+        self.case_sub_type = EditableField()
+        self.petition_or_representation = "petition"
 
         self.defendants = []
         self.selected_defendant_index = 0

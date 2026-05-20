@@ -96,8 +96,41 @@ class InfoPanel(QWidget):
             QMessageBox.warning(self, "Предупреждение", "Введите номер дела.")
             return
 
+        # Шаг 1 — узнаём, в каких картотеках есть это дело
         try:
-            found = self.case_controller.load_case(case_number)
+            sources = self.case_controller.find_sources(case_number)
+        except Exception as exc:
+            QMessageBox.critical(
+                self,
+                "Ошибка",
+                "Не удалось проверить картотеки:\n{0}".format(str(exc))
+            )
+            self.status_message.emit("Ошибка проверки картотек")
+            return
+
+        if not sources:
+            QMessageBox.information(
+                self,
+                "Поиск",
+                "Дело с указанным номером не найдено."
+            )
+            self.status_message.emit("Дело не найдено")
+            return
+
+        # Шаг 2 — если найдено в обеих, спрашиваем пользователя
+        if len(sources) > 1:
+            from app.ui.dialogs.case_source_dialog import CaseSourceDialog
+            dialog = CaseSourceDialog(case_number, parent=self)
+            if dialog.exec_() != dialog.Accepted or not dialog.selected_source:
+                self.status_message.emit("Поиск отменён")
+                return
+            source = dialog.selected_source
+        else:
+            source = sources[0]
+
+        # Шаг 3 — собственно загрузка
+        try:
+            found = self.case_controller.load_case(case_number, source)
         except Exception as exc:
             QMessageBox.critical(
                 self,

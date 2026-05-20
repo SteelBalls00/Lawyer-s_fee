@@ -92,6 +92,11 @@ class ContextBuilder(object):
             "государственный обвинитель": state.prosecutor.value,
             "дата приговора": state.verdict_date.value,
 
+            # Только для материалов
+            "сущность": getattr(state, "case_sub_type", None).value if getattr(state, "case_sub_type", None) else "",
+            "ходатайство/представление": self._build_petition_word(state),
+            "приговор или постановление": self._build_verdict_or_decree_text(state),
+
             # Вводная часть
             "вводная часть": self._build_intro_text(state),
             "сведения о подсудимом во вводной части": self._build_defendant_intro_text(state),
@@ -267,6 +272,29 @@ class ContextBuilder(object):
             return "осуждена"
 
         return "осуждён"
+
+    @staticmethod
+    def _build_petition_word(state):
+        """Возвращает «ходатайство» или «представление» для маркера материалов."""
+        choice = getattr(state, "petition_or_representation", "petition")
+        return "представление" if choice == "representation" else "ходатайство"
+
+    def _build_verdict_or_decree_text(self, state):
+        """Текст для маркера {приговор или постановление}.
+
+        - Уголовные дела: «Приговором … от {дата приговора} {осуждение} {подсудимый ио}.»
+        - Материалы:      «Постановлением … от {дата приговора} разрешено {ходатайство/представление} {сущность}.»
+        """
+        source = getattr(state, "case_source", "")
+        if source == "m":
+            return (
+                "Постановлением Благовещенского городского суда Амурской области "
+                "от {дата приговора} разрешено {ходатайство/представление} {сущность}."
+            )
+        return (
+            "Приговором Благовещенского городского суда Амурской области "
+            "от {дата приговора} {осуждение} {подсудимый ио}."
+        )
 
     @staticmethod
     def _gender_word(sex, male_form, female_form):
@@ -535,7 +563,7 @@ class ContextBuilder(object):
 
         elif mode == "not_considered":
             return (
-                "Поскольку уголовное дело в отношении {подсудимый рп} не рассмотрено, "
+                "Поскольку уголовное дело в отношении {подсудимый рп} по существу не рассмотрено, "
                 "вопрос о взыскании с {него/неё пол} процессуальных издержек обсуждению не подлежит."
             )
 
