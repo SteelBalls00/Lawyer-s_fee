@@ -26,12 +26,14 @@ class IntroBlock(QGroupBox):
 
         self.radio_yes = QRadioButton("Да")
         self.radio_no = QRadioButton("Нет")
+        self.radio_chamber = QRadioButton("Кабинетно")
         self.radio_no.setChecked(True)
 
         top_row = QHBoxLayout()
         top_row.addWidget(self.label)
         top_row.addWidget(self.radio_yes)
         top_row.addWidget(self.radio_no)
+        top_row.addWidget(self.radio_chamber)
         top_row.addStretch(1)
 
         self.text_edit = QTextEdit()
@@ -48,27 +50,45 @@ class IntroBlock(QGroupBox):
         self.radio_yes.toggled.connect(self._on_mode_changed)
         self.radio_yes.toggled.connect(self.data_changed.emit)
         self.radio_no.toggled.connect(self.data_changed.emit)
+        self.radio_chamber.toggled.connect(self.data_changed.emit)
         self.text_edit.textChanged.connect(self.data_changed.emit)
 
     def load_from_state(self, state):
         self.radio_yes.blockSignals(True)
         self.radio_no.blockSignals(True)
+        self.radio_chamber.blockSignals(True)
         self.text_edit.blockSignals(True)
 
-        self.radio_yes.setChecked(state.use_custom_intro)
-        self.radio_no.setChecked(not state.use_custom_intro)
+        mode = getattr(state, "intro_mode", None)
+        if mode is None:
+            # обратная совместимость со старым use_custom_intro
+            mode = "custom" if state.use_custom_intro else "default"
+
+        self.radio_yes.setChecked(mode == "custom")
+        self.radio_no.setChecked(mode == "default")
+        self.radio_chamber.setChecked(mode == "chamber")
+
         if state.custom_intro_html:
             self.text_edit.setHtml(state.custom_intro_html)
         else:
             self.text_edit.setPlainText(state.custom_intro_text or "")
-        self.text_edit.setVisible(state.use_custom_intro)
+        self.text_edit.setVisible(mode == "custom")
 
         self.radio_yes.blockSignals(False)
         self.radio_no.blockSignals(False)
+        self.radio_chamber.blockSignals(False)
         self.text_edit.blockSignals(False)
 
     def save_to_state(self, state):
-        state.use_custom_intro = self.radio_yes.isChecked()
+        if self.radio_yes.isChecked():
+            state.intro_mode = "custom"
+        elif self.radio_chamber.isChecked():
+            state.intro_mode = "chamber"
+        else:
+            state.intro_mode = "default"
+
+        # сохраняем для обратной совместимости
+        state.use_custom_intro = (state.intro_mode == "custom")
         state.custom_intro_text = self.text_edit.toPlainText().strip()
         state.custom_intro_html = self.text_edit.toHtml()
         state.custom_intro_segments = self._extract_rich_segments()

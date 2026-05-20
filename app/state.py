@@ -111,6 +111,7 @@ class AppState:
     events: List[EventCard] = field(default_factory=list)
 
     use_custom_intro: bool = False
+    intro_mode: str = "default"   # "default" | "custom" | "chamber"
     custom_intro_text: str = ""
     custom_intro_html: str = ""
     custom_intro_segments: list = field(default_factory=list)
@@ -154,6 +155,7 @@ class AppState:
         self.events = []
 
         self.use_custom_intro = False
+        self.intro_mode = "default"
         self.custom_intro_text = ""
         self.custom_intro_html = ""
         self.custom_intro_segments = []

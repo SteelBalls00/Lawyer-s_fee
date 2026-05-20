@@ -379,6 +379,16 @@ class MainWindow(QMainWindow):
                 letter-spacing: 0.4px;
                 background-color: #f5f7fa;
             }
+            
+            QGroupBox:disabled {
+                color: #a0aab4;
+                border-top-color: #c5d0db;
+            }
+
+            QGroupBox::title:disabled {
+                color: #a0aab4;
+                background-color: #f5f7fa;
+            }
 
             /* ═══════════════════════════════════════════
                ПОЛЯ ВВОДА
@@ -492,6 +502,15 @@ class MainWindow(QMainWindow):
                 spacing: 6px;
                 background-color: transparent;
             }
+            
+            QRadioButton:disabled {
+                color: #a0aab4;
+            }
+
+            QRadioButton::indicator:disabled {
+                image: url(resources/radio_unchecked.svg);
+                opacity: 0.5;
+            }
 
             QCheckBox::indicator {
                 width: 14px;
@@ -502,6 +521,10 @@ class MainWindow(QMainWindow):
 
             QCheckBox::indicator:checked {
                 image: url(resources/checkbox_checked.svg);
+            }
+            
+            QCheckBox:disabled {
+                color: #a0aab4;
             }
 
             QRadioButton::indicator {
@@ -620,6 +643,10 @@ class MainWindow(QMainWindow):
             QLabel {
                 color: #1c2b3a;
                 background-color: transparent;
+            }
+            
+            QLabel:disabled {
+                color: #a0aab4;
             }
 
             QTextBrowser {

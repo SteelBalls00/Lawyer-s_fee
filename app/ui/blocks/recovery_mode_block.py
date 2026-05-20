@@ -27,6 +27,9 @@ class RecoveryModeBlock(QGroupBox):
         self.radio_exempt_special = QRadioButton(
             "Освобождение — особый порядок (гл. 40 УПК РФ)"
         )
+        self.radio_not_considered = QRadioButton(
+            "Вопрос рассмотрению не подлежит"
+        )
 
         self.radio_recovery.setChecked(True)
 
@@ -34,11 +37,13 @@ class RecoveryModeBlock(QGroupBox):
         self._group.addButton(self.radio_recovery)
         self._group.addButton(self.radio_exempt_insolvency)
         self._group.addButton(self.radio_exempt_special)
+        self._group.addButton(self.radio_not_considered)
 
         root = QVBoxLayout()
         root.addWidget(self.radio_recovery)
         root.addWidget(self.radio_exempt_insolvency)
         root.addWidget(self.radio_exempt_special)
+        root.addWidget(self.radio_not_considered)
 
         self.setLayout(root)
 
@@ -46,6 +51,7 @@ class RecoveryModeBlock(QGroupBox):
         self.radio_recovery.toggled.connect(self._emit_changed)
         self.radio_exempt_insolvency.toggled.connect(self._emit_changed)
         self.radio_exempt_special.toggled.connect(self._emit_changed)
+        self.radio_not_considered.toggled.connect(self._emit_changed)
 
     def _emit_changed(self):
         if not self._loading:
@@ -57,15 +63,18 @@ class RecoveryModeBlock(QGroupBox):
         self.radio_recovery.blockSignals(True)
         self.radio_exempt_insolvency.blockSignals(True)
         self.radio_exempt_special.blockSignals(True)
+        self.radio_not_considered.blockSignals(True)
 
         mode = getattr(state, "recovery_mode", "recovery")
         self.radio_recovery.setChecked(mode == "recovery")
         self.radio_exempt_insolvency.setChecked(mode == "exempt_insolvency")
         self.radio_exempt_special.setChecked(mode == "exempt_special")
+        self.radio_not_considered.setChecked(mode == "not_considered")
 
         self.radio_recovery.blockSignals(False)
         self.radio_exempt_insolvency.blockSignals(False)
         self.radio_exempt_special.blockSignals(False)
+        self.radio_not_considered.blockSignals(False)
 
         self._loading = False
 
@@ -74,5 +83,7 @@ class RecoveryModeBlock(QGroupBox):
             state.recovery_mode = "recovery"
         elif self.radio_exempt_insolvency.isChecked():
             state.recovery_mode = "exempt_insolvency"
-        else:
+        elif self.radio_exempt_special.isChecked():
             state.recovery_mode = "exempt_special"
+        else:
+            state.recovery_mode = "not_considered"

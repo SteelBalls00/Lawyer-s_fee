@@ -182,6 +182,7 @@ class ContextBuilder(object):
             "услуги адвоката": self._build_services_text(state),
             "дополнительные постановления": self._build_extra_decrees_text(state),
             "мнение сторон о взыскании": self._build_prosecution_opinion_text(state),
+            "заявление адвоката удовлетворить": self._build_application_acceptance_text(state),
             "основания размера оплаты": self._build_payment_grounds_text(state),
             "взыскание или освобождение": self._build_recovery_reasoning_text(state, full_total),
             "взыскать или освободить": self._build_recovery_result_text(state, full_total),
@@ -208,6 +209,16 @@ class ContextBuilder(object):
         return context
 
     def _build_intro_text(self, state):
+        mode = getattr(state, "intro_mode", "default")
+
+        if mode == "chamber":
+            return (
+                "Судья Благовещенского городского суда Амурской области "
+                "{судья ио bold}, рассмотрев заявление адвоката {фио адвоката рп} "
+                "о выплате вознаграждения за осуществление защиты "
+                "{обвиняемого пол} {подсудимый рп},"
+            )
+
         if state.use_custom_intro and state.custom_intro_text:
             return state.custom_intro_text
 
@@ -222,7 +233,25 @@ class ContextBuilder(object):
             "рассмотрев в открытом судебном заседании уголовное дело в отношении:"
         )
 
+    def _build_application_acceptance_text(self, state):
+        """Текст для маркера {заявление адвоката удовлетворить} —
+        зависит от режима «Кабинетно».
+        """
+        if getattr(state, "intro_mode", "default") == "chamber":
+            return (
+                "Заявление адвоката {фио адвоката рп ио} подлежит "
+                "удовлетворению по следующим основаниям."
+            )
+        return (
+            "Выслушав участников процесса, суд находит заявление адвоката "
+            "{фио адвоката рп ио} подлежащим удовлетворению по следующим основаниям."
+        )
+
     def _build_defendant_intro_text(self, state):
+        # В кабинетном режиме строка не заполняется — абзац удалится
+        if getattr(state, "intro_mode", "default") == "chamber":
+            return ""
+
         return (
             "{подсудимый рп bold}, {родился пол} {дата рождения} в {уроженец},\n"
             "{обвиняемого пол} в совершении преступления, предусмотренного {основная статья},"
@@ -441,6 +470,10 @@ class ContextBuilder(object):
 
     def _build_prosecution_opinion_text(self, state):
         """Строит текст для маркера {мнение сторон о взыскании}."""
+        # В кабинетном режиме мнение сторон не учитывается — абзац удалится.
+        if getattr(state, "intro_mode", "default") == "chamber":
+            return ""
+
         if state.prosecutor_proposes_recovery:
             action = "взыскать с {осужденного пол}"
         else:
@@ -500,11 +533,21 @@ class ContextBuilder(object):
                 "УПК РФ осуждённый подлежит освобождению от взыскания с него процессуальных издержек."
             )
 
+        elif mode == "not_considered":
+            return (
+                "Поскольку уголовное дело в отношении {подсудимый рп} не рассмотрено, "
+                "вопрос о взыскании с {него/неё пол} процессуальных издержек обсуждению не подлежит."
+            )
+
         return ""
 
     def _build_recovery_result_text(self, state, full_total):
         """Строит текст для маркера {взыскать или освободить}."""
         mode = getattr(state, "recovery_mode", "recovery")
+
+        if mode == "not_considered":
+            # Маркер не заполняется — абзац удалится
+            return ""
 
         if mode == "recovery":
             return (

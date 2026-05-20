@@ -122,8 +122,14 @@ class InfoPanel(QWidget):
 
     def _on_common_data_changed(self):
         self.save_to_state()
+        self._update_chamber_mode_ui()
         self.total_block.load_from_state(self.state)
         self.data_changed.emit()
+
+    def _update_chamber_mode_ui(self):
+        """В кабинетном режиме блок «Мнение сторон о взыскании» неактивен."""
+        is_chamber = getattr(self.state, "intro_mode", "default") == "chamber"
+        self.prosecution_opinion_block.setEnabled(not is_chamber)
 
     def _on_services_changed(self):
         self.services_block.save_to_state(self.state)
@@ -159,6 +165,7 @@ class InfoPanel(QWidget):
         self.extra_decrees_block.load_from_state(self.state)
         self.recovery_mode_block.load_from_state(self.state)
         self.total_block.load_from_state(self.state)
+        self._update_chamber_mode_ui()
 
     def save_to_state(self):
         self.case_info_block.save_to_state(self.state)
