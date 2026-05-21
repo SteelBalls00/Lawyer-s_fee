@@ -32,7 +32,8 @@ class ProsecutionOpinionBlock(QGroupBox):
         self._prosecutor_group.addButton(self.radio_prosecutor_exempt)
 
         prosecutor_row = QHBoxLayout()
-        prosecutor_row.addWidget(QLabel("Государственный обвинитель предлагал"))
+        self.prosecutor_label = QLabel("Государственный обвинитель предлагал")
+        prosecutor_row.addWidget(self.prosecutor_label)
         prosecutor_row.addWidget(self.radio_prosecutor_recover)
         prosecutor_row.addWidget(self.radio_prosecutor_exempt)
         prosecutor_row.addStretch(1)
@@ -88,6 +89,11 @@ class ProsecutionOpinionBlock(QGroupBox):
         self.radio_defendant_not_objected.blockSignals(False)
 
         self._loading = False
+
+        if getattr(state, "case_source", "") == "m":
+            self.prosecutor_label.setText("Прокурор предлагал")
+        else:
+            self.prosecutor_label.setText("Государственный обвинитель предлагал")
 
     def save_to_state(self, state):
         state.prosecutor_proposes_recovery = self.radio_prosecutor_recover.isChecked()

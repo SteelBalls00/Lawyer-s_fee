@@ -33,7 +33,7 @@ class CaseInfoBlock(QGroupBox):
 
         # Поля только для уголовных материалов
         self.sub_type_edit = QLineEdit()
-        self.sub_type_label = QLabel("Предмет представления, ходатайства, жалобы")
+        self.sub_type_label = QLabel("Предмет представления,\nходатайства, жалобы")
 
         self.radio_petition = QRadioButton("ходатайство")
         self.radio_representation = QRadioButton("представление")

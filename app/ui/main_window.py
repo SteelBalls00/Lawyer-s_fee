@@ -127,27 +127,36 @@ class MainWindow(QMainWindow):
         claimed_str = format_money(claimed)
         services_str = format_money(services_total)
 
+        # Абсолютный путь к значкам (работает и после сборки PyInstaller)
+        if getattr(sys, "frozen", False):
+            base = sys._MEIPASS
+        else:
+            base = os.path.dirname(os.path.abspath(sys.argv[0]))
+        res_dir = os.path.join(base, "resources").replace("\\", "/")
+
         if claimed == services_total and claimed > 0:
-            # Совпадают и не нулевые — зелёный маркер
-            marker = '<span style="color:#7ed99a;">●</span>'
+            icon = "amount_match.svg"
             sum_color = "#b8e8c5"
         elif claimed == 0 and services_total == 0:
-            # Ничего ещё не введено — нейтрально
-            marker = '<span style="color:#9aafc0;">○</span>'
+            icon = "amount_neutral.svg"
             sum_color = "#dce8f5"
         else:
-            # Не совпадают — оранжевый маркер
-            marker = '<span style="color:#f5b97a;">●</span>'
+            icon = "amount_mismatch.svg"
             sum_color = "#ffd0a8"
 
+        icon_path = "{0}/{1}".format(res_dir, icon)
+
         self.amounts_label.setText(
-            '{marker} '
-            '<span style="color:#cfd5db;">Заявлено адвокатом:</span> '
-            '<span style="color:{c};font-weight:bold;">{claimed}</span>'
-            '&nbsp;&nbsp;&nbsp;'
-            '<span style="color:#cfd5db;">Сумма услуг:</span> '
-            '<span style="color:{c};font-weight:bold;">{services}</span>'.format(
-                marker=marker,
+            '<table cellpadding="0" cellspacing="0"><tr>'
+            '<td valign="middle"><img src="{icon}" width="26" height="26"></td>'
+            '<td valign="middle">&nbsp;&nbsp;</td>'
+            '<td valign="middle">'
+            '<span style="color:#cfd5db;font-size:14px;">Заявлено адвокатом:</span> '
+            '<span style="color:{c};font-weight:bold;font-size:15px;">{claimed}</span>'
+            '<span style="color:#cfd5db;font-size:14px;">&nbsp;&nbsp;&nbsp;&nbsp;Сумма услуг:</span> '
+            '<span style="color:{c};font-weight:bold;font-size:15px;">{services}</span>'
+            '</td></tr></table>'.format(
+                icon=icon_path,
                 c=sum_color,
                 claimed=claimed_str,
                 services=services_str,
