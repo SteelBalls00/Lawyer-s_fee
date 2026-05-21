@@ -592,7 +592,7 @@ class ContextBuilder(object):
                 "Взыскать с {{подсудимый рп}} процессуальные издержки в сумме "
                 "{0} ({1}) {2}."
             ).format(
-                format_money(full_total),
+                format_rubles_only(full_total),
                 money_words_only(full_total),
                 money_units_text(full_total),
             )
