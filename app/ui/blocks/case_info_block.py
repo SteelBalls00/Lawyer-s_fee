@@ -101,8 +101,8 @@ class CaseInfoBlock(QGroupBox):
         self._load_edit(self.uid_edit, state.judicial_uid)
         self._load_edit(self.decree_date_edit, state.decree_date)
         self._load_edit(self.judge_edit, state.judge)
-        self._load_edit(self.secretary_edit, state.secretary)
-        self._load_edit(self.prosecutor_edit, state.prosecutor)
+        self._load_edit(self.secretary_edit, state.secretary, hint="(не склоняется автоматически)")
+        self._load_edit(self.prosecutor_edit, state.prosecutor, hint="(не склоняется автоматически)")
         self._load_edit(self.verdict_date_edit, state.verdict_date)
         self._load_edit(self.sub_type_edit, state.case_sub_type)
 
@@ -163,8 +163,15 @@ class CaseInfoBlock(QGroupBox):
         self._load_history_values()
 
     @staticmethod
-    def _load_edit(edit, editable_field):
+    def _load_edit(edit, editable_field, hint=None):
         edit.blockSignals(True)
         edit.setText(editable_field.user_value)
-        edit.setPlaceholderText(editable_field.db_value)
+        # Если есть значение из БД — показываем его как подсказку,
+        # иначе показываем переданный hint (например, «(не склоняется)»)
+        if editable_field.db_value:
+            edit.setPlaceholderText(editable_field.db_value)
+        elif hint:
+            edit.setPlaceholderText(hint)
+        else:
+            edit.setPlaceholderText("")
         edit.blockSignals(False)
