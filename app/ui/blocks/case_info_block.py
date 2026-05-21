@@ -11,24 +11,28 @@ from PyQt5.QtWidgets import (
     QRadioButton,
     QWidget,
 )
+from app.ui.widgets.history_line_edit import HistoryLineEdit
 
 
 class CaseInfoBlock(QGroupBox):
     data_changed = pyqtSignal()
 
-    def __init__(self, parent=None):
+    def __init__(self, field_history=None, parent=None):
         super().__init__("Информация по делу", parent)
+
+        self.field_history = field_history
 
         self._build_ui()
         self._connect_signals()
+        self._load_history_values()
 
     def _build_ui(self):
         self.case_number_edit = QLineEdit()
         self.uid_edit = QLineEdit()
         self.decree_date_edit = QLineEdit()
         self.judge_edit = QLineEdit()
-        self.secretary_edit = QLineEdit()
-        self.prosecutor_edit = QLineEdit()
+        self.secretary_edit = HistoryLineEdit()
+        self.prosecutor_edit = HistoryLineEdit()
         self.verdict_date_edit = QLineEdit()
 
         # Поля только для уголовных материалов
@@ -127,6 +131,36 @@ class CaseInfoBlock(QGroupBox):
             state.petition_or_representation = "petition"
         else:
             state.petition_or_representation = "representation"
+
+    def _load_history_values(self):
+        """Подгружает варианты автодополнения из истории."""
+        if not self.field_history:
+            return
+        self.secretary_edit.set_history_values(
+            self.field_history.get_values("secretary")
+        )
+        self.prosecutor_edit.set_history_values(
+            self.field_history.get_values("prosecutor")
+        )
+
+    def commit_history(self):
+        """Сохраняет текущие значения секретаря и обвинителя в историю.
+
+        Вызывается при сохранении постановления (значение «использовано»).
+        """
+        if not self.field_history:
+            return
+
+        secretary = self.secretary_edit.text().strip()
+        prosecutor = self.prosecutor_edit.text().strip()
+
+        if secretary:
+            self.field_history.add_value("secretary", secretary)
+        if prosecutor:
+            self.field_history.add_value("prosecutor", prosecutor)
+
+        # Обновляем выпадающие списки, чтобы свежие значения сразу появились
+        self._load_history_values()
 
     @staticmethod
     def _load_edit(edit, editable_field):

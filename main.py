@@ -22,6 +22,7 @@ from app.services.preview_renderer import PreviewRenderer
 from app.services.docx_renderer import DocxRenderer
 from app.services.declension_word_cache import DeclensionWordCache
 from app.services.user_settings import UserSettings
+from app.services.field_history import FieldHistory
 
 from app.ui.main_window import MainWindow
 
@@ -34,6 +35,7 @@ def main():
     template_path = os.path.join(base_dir, "template_01.docx")
     declensions_path = os.path.join(base_dir, "declensions.ini")
     settings_path = os.path.join(base_dir, "settings.ini")
+    field_history_path = os.path.join(base_dir, "field_history.ini")
 
     app = QApplication(sys.argv)
 
@@ -51,6 +53,7 @@ def main():
     tag_resolver = TagResolver(morphology_service)
 
     user_settings = UserSettings(settings_path)
+    field_history = FieldHistory(field_history_path)
     declension_cache = DeclensionWordCache(
         declensions_path,
         network_path=user_settings.get_network_declensions_path(),
@@ -84,6 +87,7 @@ def main():
         save_controller=save_controller,
         declension_cache=declension_cache,
         user_settings=user_settings,
+        field_history=field_history,
     )
     window.showMaximized()
 

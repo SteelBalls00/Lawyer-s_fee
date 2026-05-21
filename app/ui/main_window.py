@@ -29,6 +29,7 @@ class MainWindow(QMainWindow):
         save_controller,
         declension_cache=None,
         user_settings=None,
+        field_history=None,
         parent=None,
     ):
         super().__init__(parent)
@@ -40,6 +41,7 @@ class MainWindow(QMainWindow):
         self.save_controller = save_controller
         self.declension_cache = declension_cache
         self.user_settings = user_settings
+        self.field_history = field_history
 
         # Отслеживаем ФИО адвоката, чтобы при смене загружать кеш
         self._loaded_lawyer_fio = None
@@ -93,6 +95,7 @@ class MainWindow(QMainWindow):
             state=self.state,
             case_controller=self.case_controller,
             payment_calculator=self.payment_calculator,
+            field_history=self.field_history,
             parent=self,
         )
         self.info_panel.setMinimumWidth(620)
@@ -262,6 +265,9 @@ class MainWindow(QMainWindow):
         # Запоминаем директорию сохранения для следующего раза
         if self.user_settings and saved_path:
             self.user_settings.set_last_save_dir(os.path.dirname(saved_path))
+
+        # Запоминаем использованные значения секретаря и обвинителя
+        self.info_panel.case_info_block.commit_history()
 
         unknown_tags = self.save_controller.get_last_unknown_tags()
         unresolved_tags = self.save_controller.get_last_unresolved_tags()

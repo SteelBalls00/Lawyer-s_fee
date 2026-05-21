@@ -25,12 +25,14 @@ class InfoPanel(QWidget):
     data_changed = pyqtSignal()
     status_message = pyqtSignal(str)
 
-    def __init__(self, state, case_controller, payment_calculator, parent=None):
+    def __init__(self, state, case_controller, payment_calculator,
+                 field_history=None, parent=None):
         super().__init__(parent)
 
         self.state = state
         self.case_controller = case_controller
         self.payment_calculator = payment_calculator
+        self.field_history = field_history
 
         self._build_ui()
         self._connect_signals()
@@ -38,7 +40,7 @@ class InfoPanel(QWidget):
 
     def _build_ui(self):
         self.case_search_block = CaseSearchBlock()
-        self.case_info_block = CaseInfoBlock()
+        self.case_info_block = CaseInfoBlock(field_history=self.field_history)
         self.intro_block = IntroBlock()
         self.defendant_block = DefendantBlock()
         self.lawyer_block = LawyerBlock()
