@@ -101,6 +101,13 @@ def to_decimal_money(value):
         return Decimal("0.00")
 
 
+def format_rubles_only(value):
+    """Целая часть суммы (рубли) с разделителем тысяч, без копеек."""
+    amount = to_decimal_money(value)
+    rubles = int(amount)
+    return "{0:,}".format(rubles).replace(",", " ")
+
+
 def format_money(value):
     amount = to_decimal_money(value)
 

@@ -62,9 +62,12 @@ class PreviewRenderer(object):
             rendered = self.tag_resolver.render_html(text, context)
         align = self._get_alignment(paragraph)
 
-        # Отступ первой строки — только для абзацев по ширине (основной текст)
-        # QTextBrowser корректно воспринимает px, но не pt
         indent_style = "text-indent:47px;" if align == "justify" else ""
+
+        # В кабинетном режиме абзац вводной части — обычный абзац с отступом
+        is_intro = (text or "").strip().lower() == "{вводная часть}"
+        if is_intro and context.get("__intro_mode") == "chamber":
+            indent_style = "text-indent:47px;"
 
         return (
             '<p class="doc-paragraph" style="text-align:{0};{1}">{2}</p>'.format(

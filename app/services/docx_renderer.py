@@ -126,6 +126,13 @@ class DocxRenderer(object):
                 parent.remove(p)
             return
 
+        # В кабинетном режиме абзац вводной части получает абзацный отступ,
+        # как у остальных абзацев после "УСТАНОВИЛ:"
+        if (original_text or "").strip().lower() == "{вводная часть}" \
+                and context.get("__intro_mode") == "chamber":
+            from docx.shared import Cm
+            paragraph.paragraph_format.first_line_indent = Cm(1.25)
+
         segments = self.tag_resolver.render_segments(original_text, context)
         self._set_paragraph_segments(paragraph, segments)
 

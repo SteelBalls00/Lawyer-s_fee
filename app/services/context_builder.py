@@ -12,6 +12,7 @@ from app.services.money_to_text import (
     money_words_only,
     money_units_text,
     money_with_words,
+    format_rubles_only,
 )
 
 
@@ -102,6 +103,7 @@ class ContextBuilder(object):
             "сведения о подсудимом во вводной части": self._build_defendant_intro_text(state),
             "данные подсудимого во вводной части": self._build_defendant_intro_text(state),
             "__use_custom_intro": state.use_custom_intro,
+            "__intro_mode": getattr(state, "intro_mode", "default"),
             "__custom_intro_segments": state.custom_intro_segments,
 
             # Подсудимый
@@ -125,6 +127,7 @@ class ContextBuilder(object):
             "который пол": self._gender_word(defendant_sex, "который", "которая"),
             "его/её пол": self._gender_word(defendant_sex, "его", "её"),
             "него/неё пол": self._gender_word(defendant_sex, "него", "неё"),
+            "возражал пол": self._gender_word(defendant_sex, "возражал", "возражала"),
 
             # Адвокат
             "адвокат": lawyer_fio,
@@ -168,7 +171,7 @@ class ContextBuilder(object):
 
             "количество услуг": str(len(state.services)),
             "количество дней": _days_word(len(state.services)),
-            "вознаграждение за услуги": format_money(services_total),
+            "вознаграждение за услуги": format_rubles_only(services_total),
             "вознаграждение за услуги прописью": money_words_only(services_total),
             "вознаграждение за услуги рублей копеек": money_units_text(services_total),
             "вознаграждение за услуги с прописью": money_with_words(services_total),
@@ -507,7 +510,7 @@ class ContextBuilder(object):
         else:
             action = "освободить {осужденного пол} от взыскания процессуальных издержек"
 
-        reaction = "возражал" if state.defendant_objected else "не возражал"
+        reaction = "{возражал пол}" if state.defendant_objected else "не {возражал пол}"
 
         # В материалах — «Прокурор», в уголовных делах — «Государственный обвинитель»
         if getattr(state, "case_source", "") == "m":
