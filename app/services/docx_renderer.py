@@ -131,7 +131,9 @@ class DocxRenderer(object):
         if (original_text or "").strip().lower() == "{вводная часть}" \
                 and context.get("__intro_mode") == "chamber":
             from docx.shared import Cm
+            from docx.enum.text import WD_ALIGN_PARAGRAPH
             paragraph.paragraph_format.first_line_indent = Cm(1.25)
+            paragraph.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
 
         segments = self.tag_resolver.render_segments(original_text, context)
         self._set_paragraph_segments(paragraph, segments)
