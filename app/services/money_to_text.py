@@ -105,7 +105,8 @@ def format_rubles_only(value):
     """Целая часть суммы (рубли) с разделителем тысяч, без копеек."""
     amount = to_decimal_money(value)
     rubles = int(amount)
-    return "{0:,}".format(rubles).replace(",", " ")
+    # Неразрывный пробел между разрядами, чтобы сумма не разрывалась по строкам
+    return "{0:,}".format(rubles).replace(",", "\u00a0")
 
 
 def format_money(value):
@@ -114,7 +115,7 @@ def format_money(value):
     rubles = int(amount)
     kopeks = int((amount - Decimal(rubles)) * 100)
 
-    rubles_text = "{0:,}".format(rubles).replace(",", " ")
+    rubles_text = "{0:,}".format(rubles).replace(",", "\u00a0")
 
     if kopeks:
         return "{0},{1:02d}".format(rubles_text, kopeks)
