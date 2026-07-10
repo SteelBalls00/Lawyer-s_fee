@@ -146,8 +146,8 @@ class DeclensionDialog(QDialog):
         _upd(edit.text())
         edit.textChanged.connect(_upd)
 
-        reset_btn = QPushButton("↶ Сброс")
-        reset_btn.setFixedWidth(80)
+        reset_btn = QPushButton("\u21ba")
+        reset_btn.setFixedWidth(32)
         reset_btn.setToolTip("Вернуть автосклонение")
         reset_btn.clicked.connect(
             lambda _=False, e=edit, bk=base_key, cs=case_short:

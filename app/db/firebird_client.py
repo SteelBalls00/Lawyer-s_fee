@@ -7,8 +7,9 @@ import fdb
 
 
 class FirebirdClient(object):
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: str, section: str = "database"):
         self.config_path = config_path
+        self.section = section
         self._config = self._load_config()
 
     def _load_config(self) -> configparser.SectionProxy:
@@ -17,10 +18,12 @@ class FirebirdClient(object):
         if not read_files:
             raise FileNotFoundError("Не найден config.ini: {0}".format(self.config_path))
 
-        if "database" not in parser:
-            raise KeyError("В config.ini отсутствует секция [database]")
+        if self.section not in parser:
+            raise KeyError(
+                "В config.ini отсутствует секция [{0}]".format(self.section)
+            )
 
-        return parser["database"]
+        return parser[self.section]
 
     @contextmanager
     def connection(self):

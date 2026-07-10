@@ -2,6 +2,7 @@
 # pyinstaller --onedir --noconsole --name AdvokatOplata --clean --add-data "config.ini;." --add-data "payment_to_lawyers.txt;." --add-data "template_01.docx;." --add-data ".venv\Lib\site-packages\pymorphy2_dicts_ru\data;pymorphy2_dicts_ru\data" --hidden-import=pymorphy2_dicts_ru --hidden-import=pymorphy2 --hidden-import=fdb --hidden-import=docx main.py
 # pyinstaller --onedir --noconsole --name AdvokatOplata --clean --add-data "lawyer_fee.ico;." --icon=lawyer_fee.ico --add-data "config.ini;." --add-data "payment_to_lawyers.txt;." --add-data "template_01.docx;." --add-data "resources;resources" --add-data ".venv\Lib\site-packages\pymorphy2_dicts_ru\data;pymorphy2_dicts_ru\data" --hidden-import=pymorphy2_dicts_ru --hidden-import=pymorphy2 --hidden-import=fdb --hidden-import=docx main.py
 
+import configparser
 import os
 import sys
 
@@ -23,6 +24,8 @@ from app.services.docx_renderer import DocxRenderer
 from app.services.declension_word_cache import DeclensionWordCache
 from app.services.user_settings import UserSettings
 from app.services.field_history import FieldHistory
+from app.services.auth_service import AuthService
+from app.services.decree_archive import DecreeArchive
 
 from app.ui.main_window import MainWindow
 
@@ -44,6 +47,20 @@ def main():
     db_client = FirebirdClient(config_path)
     repository = CaseRepository(db_client)
     case_controller = CaseController(state, repository)
+
+    # Авторизация — по той же основной БД (groupcontent)
+    auth_service = AuthService(db_client)
+
+    # Архив постановлений — отдельная БД, секция [archive] в config.ini
+    decree_archive = None
+    _parser = configparser.ConfigParser()
+    _parser.read(config_path, encoding="utf-8")
+    if "archive" in _parser:
+        try:
+            archive_client = FirebirdClient(config_path, section="archive")
+            decree_archive = DecreeArchive(archive_client)
+        except Exception:
+            decree_archive = None
 
     payment_rates = PaymentRates(rates_path)
     payment_calculator = PaymentCalculator(payment_rates)
@@ -88,6 +105,8 @@ def main():
         declension_cache=declension_cache,
         user_settings=user_settings,
         field_history=field_history,
+        auth_service=auth_service,
+        decree_archive=decree_archive,
     )
     window.showMaximized()
 

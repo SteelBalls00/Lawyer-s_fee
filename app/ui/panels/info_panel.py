@@ -73,6 +73,7 @@ class InfoPanel(QWidget):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setWidget(content_widget)
+        self._scroll = scroll
 
         root = QVBoxLayout()
         root.addWidget(scroll)
@@ -154,6 +155,14 @@ class InfoPanel(QWidget):
         self.refresh_from_state()
         self.data_changed.emit()
         self.status_message.emit("Данные по делу загружены")
+
+    def get_scroll_value(self):
+        """Текущее положение вертикальной прокрутки панели."""
+        return self._scroll.verticalScrollBar().value()
+
+    def set_scroll_value(self, value):
+        """Восстановить положение вертикальной прокрутки."""
+        self._scroll.verticalScrollBar().setValue(value)
 
     def _on_common_data_changed(self):
         self.save_to_state()

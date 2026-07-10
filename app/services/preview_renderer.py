@@ -142,18 +142,14 @@ class PreviewRenderer(object):
 <meta charset="utf-8">
 <style>
     body {
-        background: #eef1f4;
+        background: #ffffff;
         margin: 0;
-        padding: 18px;
+        padding: 14px 26px;
     }
 
     .page {
         max-width: 900px;
         margin: 0 auto;
-        background: #ffffff;
-        border: 1px solid #d7dde5;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
-        padding: 52px 62px;
         color: #1f2933;
         font-family: "Times New Roman", serif;
         font-size: 14pt;

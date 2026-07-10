@@ -8,15 +8,20 @@ from PyQt5.QtWidgets import (
     QAction,
     QFileDialog,
     QLabel,
+    QLineEdit,
     QMainWindow,
     QMessageBox,
+    QSizePolicy,
     QSplitter,
+    QStackedWidget,
+    QWidget,
 )
 from app.services.money_to_text import format_money
 
 from app.constants import WINDOW_TITLE
 from app.ui.panels.info_panel import InfoPanel
 from app.ui.panels.preview_panel import PreviewPanel
+from app.ui.panels.archive_panel import ArchivePanel
 
 
 class MainWindow(QMainWindow):
@@ -30,6 +35,8 @@ class MainWindow(QMainWindow):
         declension_cache=None,
         user_settings=None,
         field_history=None,
+        auth_service=None,
+        decree_archive=None,
         parent=None,
     ):
         super().__init__(parent)
@@ -42,6 +49,11 @@ class MainWindow(QMainWindow):
         self.declension_cache = declension_cache
         self.user_settings = user_settings
         self.field_history = field_history
+        self.auth_service = auth_service
+        self.decree_archive = decree_archive
+
+        # Авторизованный пользователь (None до входа)
+        self.current_user = None
 
         # Отслеживаем ФИО адвоката, чтобы при смене загружать кеш
         self._loaded_lawyer_fio = None
@@ -68,6 +80,9 @@ class MainWindow(QMainWindow):
     def _build_toolbar(self):
         self.save_docx_action = QAction("Сохранить постановление", self)
         self.save_docx_action.triggered.connect(self._on_save_docx)
+        # До авторизации сохранение недоступно
+        self.save_docx_action.setEnabled(False)
+        self.save_docx_action.setToolTip("Сначала вам нужно авторизоваться.")
 
         self.check_template_action = QAction("Проверить шаблон", self)
         self.check_template_action.triggered.connect(self._on_check_template)
@@ -90,6 +105,47 @@ class MainWindow(QMainWindow):
         self.declensions_action.triggered.connect(self._on_open_declensions)
         toolbar.addAction(self.declensions_action)
 
+        toolbar.addSeparator()
+
+        self.archive_action = QAction("Архив\nпостановлений", self)
+        self.archive_action.triggered.connect(self._on_toggle_archive)
+        toolbar.addAction(self.archive_action)
+        if self.decree_archive is None:
+            self.archive_action.setEnabled(False)
+            self.archive_action.setToolTip(
+                "В config.ini не настроена секция [archive]."
+            )
+
+        # Распорка, чтобы блок авторизации прижался вправо
+        spacer = QWidget()
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        spacer.setStyleSheet("background: transparent;")
+        toolbar.addWidget(spacer)
+
+        # Поле ввода пароля прямо в тулбаре — без отдельных окон.
+        # Вход и смена пользователя: ввести пароль и нажать Enter.
+        self.auth_password_edit = QLineEdit()
+        self.auth_password_edit.setEchoMode(QLineEdit.Password)
+        self.auth_password_edit.setPlaceholderText("Пароль от ГАС СДП")
+        self.auth_password_edit.setToolTip("Введите пароль и нажмите Enter")
+        self.auth_password_edit.setFixedWidth(180)
+        self.auth_password_edit.returnPressed.connect(self._try_login)
+        self.auth_password_edit.textChanged.connect(self._reset_auth_error)
+        toolbar.addWidget(self.auth_password_edit)
+
+        # Приветствие на месте бывшей кнопки
+        self.auth_status_label = QLabel("")
+        self.auth_status_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.auth_status_label.setStyleSheet(
+            "color: #dce8f5; font-weight: bold; font-size: 12px; "
+            "padding: 0 12px; background: transparent;"
+        )
+        toolbar.addWidget(self.auth_status_label)
+
+        if self.auth_service is None:
+            self.auth_password_edit.setEnabled(False)
+            self.auth_password_edit.setToolTip("Авторизация недоступна")
+
     def _build_ui(self):
         self.info_panel = InfoPanel(
             state=self.state,
@@ -105,9 +161,17 @@ class MainWindow(QMainWindow):
             parent=self,
         )
 
+        self.archive_panel = ArchivePanel(parent=self)
+        self.archive_panel.record_selected.connect(self._on_archive_record_selected)
+        self.archive_panel.record_chosen.connect(self._on_archive_record_chosen)
+
+        self.right_stack = QStackedWidget()
+        self.right_stack.addWidget(self.preview_panel)   # index 0
+        self.right_stack.addWidget(self.archive_panel)   # index 1
+
         splitter = QSplitter(Qt.Horizontal)
         splitter.addWidget(self.info_panel)
-        splitter.addWidget(self.preview_panel)
+        splitter.addWidget(self.right_stack)
         splitter.setChildrenCollapsible(False)
         splitter.setSizes([640, 960])
 
@@ -192,6 +256,200 @@ class MainWindow(QMainWindow):
             self._loaded_lawyer_fio = None   # перечитать кеш после правок
             self.refresh_preview()
 
+    def _try_login(self):
+        """Вход по Enter в поле пароля. Повторный ввод — смена пользователя."""
+        if self.auth_service is None:
+            return
+
+        password = self.auth_password_edit.text().strip()
+        if not password:
+            self._mark_auth_error("Введите пароль")
+            return
+
+        try:
+            username = self.auth_service.authenticate(password)
+        except Exception as exc:
+            self._mark_auth_error("Ошибка подключения к БД")
+            self.statusBar().showMessage(
+                "Ошибка авторизации: {0}".format(exc)
+            )
+            return
+
+        if not username:
+            self._mark_auth_error("Неверный пароль")
+            self.auth_password_edit.selectAll()
+            self.auth_password_edit.setFocus()
+            return
+
+        # Успех: очищаем поле, показываем приветствие справа
+        self.current_user = username
+        self.auth_password_edit.clear()
+
+        self.auth_status_label.setText(
+            "Здравствуйте,\n{0}".format(self.current_user)
+        )
+
+        self.save_docx_action.setEnabled(True)
+        self.save_docx_action.setToolTip("")
+
+        self.statusBar().showMessage(
+            "Авторизация выполнена: {0}".format(self.current_user)
+        )
+
+    def _mark_auth_error(self, message):
+        """Подсветить поле пароля красной рамкой и показать сообщение."""
+        self.auth_password_edit.setStyleSheet(
+            "border: 1px solid #d9534f; background-color: #fff5f5;"
+        )
+        self.statusBar().showMessage(message)
+
+    def _reset_auth_error(self, _text=""):
+        """Вернуть обычный вид поля пароля при изменении текста."""
+        self.auth_password_edit.setStyleSheet("")
+
+    def _on_toggle_archive(self):
+        # Повторное нажатие — вернуть предпросмотр
+        if self.right_stack.currentIndex() == 1:
+            self.right_stack.setCurrentIndex(0)
+            return
+
+        if self.decree_archive is None:
+            return
+
+        if not self.current_user:
+            QMessageBox.information(
+                self,
+                "Архив постановлений",
+                "Сначала вам нужно авторизоваться.",
+            )
+            return
+
+        try:
+            records = self.decree_archive.list_decrees(self.current_user)
+        except Exception as exc:
+            QMessageBox.critical(
+                self,
+                "Архив постановлений",
+                "Не удалось загрузить архив:\n{0}".format(exc),
+            )
+            return
+
+        self.archive_panel.set_records(records)
+        self.right_stack.setCurrentIndex(1)
+
+    def _load_snapshot(self, decree_id, mode):
+        """Достаёт снапшот и применяет к state. Возвращает snapshot или None."""
+        from app.services.state_serializer import apply_dict_to_state
+
+        snapshot = self.decree_archive.get_snapshot(decree_id)
+        if snapshot is None:
+            QMessageBox.warning(
+                self,
+                "Архив постановлений",
+                "Не удалось прочитать данные постановления.",
+            )
+            return None
+
+        if mode == "full":
+            self.state.reset_case_related_data()
+
+        apply_dict_to_state(self.state, snapshot, mode=mode)
+        return snapshot
+
+    def _on_archive_record_selected(self, decree_id):
+        """Клик по записи архива: показать её данные в полях слева."""
+        if self.decree_archive is None:
+            return
+
+        scroll_pos = self.info_panel.get_scroll_value()
+
+        if self._load_snapshot(decree_id, mode="full") is None:
+            return
+
+        self.info_panel.refresh_from_state()
+
+        # Вернуть прокрутку после перерисовки полей
+        from PyQt5.QtCore import QTimer
+        QTimer.singleShot(0, lambda: self.info_panel.set_scroll_value(scroll_pos))
+
+        self._update_amounts_info()
+        self.preview_panel.update_preview(self.state)
+
+    def _on_archive_record_chosen(self, decree_id):
+        """Кнопка «Выбрать»: обновить дело из БД и наложить архивные данные."""
+        if self.decree_archive is None:
+            return
+
+        snapshot = self.decree_archive.get_snapshot(decree_id)
+        if snapshot is None:
+            QMessageBox.warning(
+                self,
+                "Архив постановлений",
+                "Не удалось прочитать данные постановления.",
+            )
+            return
+
+        case_number = ((snapshot.get("fields") or {})
+                       .get("case_number") or {})
+        number = (case_number.get("user") or case_number.get("db") or "").strip()
+        source = snapshot.get("case_source") or ""
+
+        loaded_fresh = False
+        if number and source in ("u1", "m"):
+            try:
+                loaded_fresh = self.case_controller.load_case(number, source)
+            except Exception:
+                loaded_fresh = False
+
+        from app.services.state_serializer import apply_dict_to_state
+
+        if loaded_fresh:
+            # Свежие данные из БД + архивные правки поверх
+            apply_dict_to_state(self.state, snapshot, mode="overlay")
+            self.statusBar().showMessage(
+                "Дело обновлено из БД, применены данные постановления"
+            )
+        else:
+            # БД недоступна или дело не нашлось — восстанавливаем целиком из архива
+            self.state.reset_case_related_data()
+            apply_dict_to_state(self.state, snapshot, mode="full")
+            self.statusBar().showMessage(
+                "Данные восстановлены из архива (без обновления из БД)"
+            )
+
+        self.info_panel.refresh_from_state()
+        self.right_stack.setCurrentIndex(0)
+        self.refresh_preview()
+
+    def _save_decree_to_archive(self):
+        """Пишет текущее постановление в архивную БД."""
+        if self.decree_archive is None or not self.current_user:
+            return
+
+        services_total = self.payment_calculator.get_services_total(
+            self.state.services
+        )
+        if self.state.use_extra_decrees:
+            extra_total = self.payment_calculator.get_extra_decrees_total(
+                self.state.extra_decrees
+            )
+        else:
+            extra_total = 0
+        full_total = services_total + extra_total
+
+        try:
+            self.decree_archive.save_decree(
+                self.state,
+                self.current_user,
+                services_total,
+                extra_total,
+                full_total,
+            )
+        except Exception as exc:
+            self.statusBar().showMessage(
+                "Постановление сохранено, но запись в архив не удалась: {0}".format(exc)
+            )
+
     def _on_check_template(self):
         self.info_panel.save_to_state()
 
@@ -268,6 +526,9 @@ class MainWindow(QMainWindow):
 
         # Запоминаем использованные значения секретаря и обвинителя
         self.info_panel.case_info_block.commit_history()
+
+        # Пишем постановление в архивную БД
+        self._save_decree_to_archive()
 
         unknown_tags = self.save_controller.get_last_unknown_tags()
         unresolved_tags = self.save_controller.get_last_unresolved_tags()
