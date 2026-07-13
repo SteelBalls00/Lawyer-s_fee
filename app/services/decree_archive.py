@@ -41,9 +41,9 @@ VALUES (?, ?, ?, ?)
 
 SELECT_LIST = """
 SELECT FIRST 300
-    ID, CREATED_AT, CASE_NUMBER, LAWYER_FIO, DEFENDANT_FIO, SERVICES_TOTAL
+    ID, CREATED_AT, USERNAME, CASE_NUMBER, LAWYER_FIO, DEFENDANT_FIO, SERVICES_TOTAL
 FROM DECREES
-WHERE USERNAME = ?
+WHERE UPPER(USERNAME) IN ({placeholders})
 ORDER BY CREATED_AT DESC, ID DESC
 """
 
@@ -106,14 +106,23 @@ class DecreeArchive:
 
     # ─── Чтение ─────────────────────────────────────────────────────────
 
-    def list_decrees(self, username):
-        """Список постановлений пользователя (свежие сверху).
+    def list_decrees(self, usernames):
+        """Список постановлений (свежие сверху) для одного пользователя
+        или всего состава.
 
-        Возвращает список словарей:
-        {id, created_at, case_number, lawyer_fio, defendant_fio,
+        usernames — строка или список строк. Возвращает список словарей:
+        {id, created_at, username, case_number, lawyer_fio, defendant_fio,
          services_total, services: [...], extras: [...]}
         """
-        rows = self.db.fetch_all(SELECT_LIST, (username,))
+        if isinstance(usernames, str):
+            usernames = [usernames]
+        usernames = [(u or "").strip().upper() for u in usernames if (u or "").strip()]
+        if not usernames:
+            return []
+
+        placeholders = ", ".join(["?"] * len(usernames))
+        query = SELECT_LIST.format(placeholders=placeholders)
+        rows = self.db.fetch_all(query, tuple(usernames))
 
         records = []
         ids = []
@@ -121,10 +130,11 @@ class DecreeArchive:
             records.append({
                 "id": row[0],
                 "created_at": row[1],
-                "case_number": row[2] or "",
-                "lawyer_fio": row[3] or "",
-                "defendant_fio": row[4] or "",
-                "services_total": row[5],
+                "username": (row[2] or "").strip(),
+                "case_number": row[3] or "",
+                "lawyer_fio": row[4] or "",
+                "defendant_fio": row[5] or "",
+                "services_total": row[6],
                 "services": [],
                 "extras": [],
             })

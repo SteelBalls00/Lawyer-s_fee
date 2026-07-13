@@ -26,6 +26,8 @@ class CaseInfoBlock(QGroupBox):
         self._connect_signals()
         self._load_history_values()
 
+        self._updating_date = False
+
     def _build_ui(self):
         self.case_number_edit = QLineEdit()
         self.uid_edit = QLineEdit()
@@ -88,6 +90,11 @@ class CaseInfoBlock(QGroupBox):
 
         self.radio_petition.toggled.connect(self.data_changed.emit)
         self.radio_representation.toggled.connect(self.data_changed.emit)
+
+        self.decree_date_edit.textChanged.connect(
+            lambda _t: self._on_date_field_changed(self.decree_date_edit))
+        self.verdict_date_edit.textChanged.connect(
+            lambda _t: self._on_date_field_changed(self.verdict_date_edit))
 
     def _set_materials_fields_visible(self, visible):
         """Поля sub_type и petition радиокнопки видны только для материалов."""
@@ -175,3 +182,21 @@ class CaseInfoBlock(QGroupBox):
         else:
             edit.setPlaceholderText("")
         edit.blockSignals(False)
+
+    def _on_date_field_changed(self, edit):
+        """Автоматическая расстановка точек при вводе даты."""
+        if self._updating_date:
+            return
+        self._updating_date = True
+        text = edit.text()
+        digits = "".join(c for c in text if c.isdigit())[:8]
+        if len(digits) <= 2:
+            formatted = digits
+        elif len(digits) <= 4:
+            formatted = digits[:2] + "." + digits[2:]
+        else:
+            formatted = digits[:2] + "." + digits[2:4] + "." + digits[4:]
+        if formatted != text:
+            edit.setText(formatted)
+            edit.setCursorPosition(len(formatted))
+        self._updating_date = False

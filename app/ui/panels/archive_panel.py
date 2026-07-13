@@ -19,7 +19,7 @@ class ArchivePanel(QWidget):
     """Список ранее созданных постановлений текущего пользователя.
 
     - Клик по записи → сигнал record_selected(id): поля слева заполняются.
-    - Кнопка «Выбрать» → сигнал record_chosen(id): обновление дела из БД
+    - Кнопка «Загрузить по делу\nновые данные» → сигнал record_chosen(id): обновление дела из БД
       и возврат к предпросмотру.
     - Раскрытие записи показывает услуги адвоката и доп. постановления.
     """
@@ -38,7 +38,7 @@ class ArchivePanel(QWidget):
             "letter-spacing: 0.5px;"
         )
 
-        self.choose_btn = QPushButton("Выбрать")
+        self.choose_btn = QPushButton("Загрузить по делу\nновые данные")
         self.choose_btn.setMinimumWidth(120)
         self.choose_btn.clicked.connect(self._on_choose)
 
@@ -48,9 +48,9 @@ class ArchivePanel(QWidget):
         top_row.addWidget(self.choose_btn)
 
         self.tree = QTreeWidget()
-        self.tree.setColumnCount(5)
+        self.tree.setColumnCount(6)
         self.tree.setHeaderLabels([
-            "Дата", "№ дела", "Адвокат", "Обвиняемый", "Сумма услуг",
+            "Дата", "№ дела", "Адвокат", "Обвиняемый", "Сумма услуг", "Автор",
         ])
         self.tree.setRootIsDecorated(True)
         self.tree.setAlternatingRowColors(False)
@@ -62,6 +62,7 @@ class ArchivePanel(QWidget):
         header.setSectionResizeMode(2, QHeaderView.Stretch)
         header.setSectionResizeMode(3, QHeaderView.Stretch)
         header.setSectionResizeMode(4, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(5, QHeaderView.ResizeToContents)
 
         self.tree.setStyleSheet("""
             QTreeWidget {
@@ -122,6 +123,7 @@ class ArchivePanel(QWidget):
                 rec.get("lawyer_fio") or "",
                 rec.get("defendant_fio") or "",
                 total_str,
+                rec.get("username") or "",
             ])
             item.setData(0, Qt.UserRole, int(rec["id"]))
 

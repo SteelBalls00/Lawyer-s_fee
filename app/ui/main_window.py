@@ -14,6 +14,7 @@ from PyQt5.QtWidgets import (
     QSizePolicy,
     QSplitter,
     QStackedWidget,
+    QToolButton,
     QWidget,
 )
 from app.services.money_to_text import format_money
@@ -37,6 +38,7 @@ class MainWindow(QMainWindow):
         field_history=None,
         auth_service=None,
         decree_archive=None,
+        team_service=None,
         parent=None,
     ):
         super().__init__(parent)
@@ -51,6 +53,7 @@ class MainWindow(QMainWindow):
         self.field_history = field_history
         self.auth_service = auth_service
         self.decree_archive = decree_archive
+        self.team_service = team_service
 
         # Авторизованный пользователь (None до входа)
         self.current_user = None
@@ -122,8 +125,16 @@ class MainWindow(QMainWindow):
         spacer.setStyleSheet("background: transparent;")
         toolbar.addWidget(spacer)
 
+        # Приветствие — слева от поля пароля
+        self.auth_status_label = QLabel("")
+        self.auth_status_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.auth_status_label.setStyleSheet(
+            "color: #dce8f5; font-weight: bold; font-size: 12px; "
+            "padding: 0 12px; background: transparent;"
+        )
+        toolbar.addWidget(self.auth_status_label)
+
         # Поле ввода пароля прямо в тулбаре — без отдельных окон.
-        # Вход и смена пользователя: ввести пароль и нажать Enter.
         self.auth_password_edit = QLineEdit()
         self.auth_password_edit.setEchoMode(QLineEdit.Password)
         self.auth_password_edit.setPlaceholderText("Пароль от ГАС СДП")
@@ -133,18 +144,15 @@ class MainWindow(QMainWindow):
         self.auth_password_edit.textChanged.connect(self._reset_auth_error)
         toolbar.addWidget(self.auth_password_edit)
 
-        # Приветствие на месте бывшей кнопки
-        self.auth_status_label = QLabel("")
-        self.auth_status_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.auth_status_label.setStyleSheet(
-            "color: #dce8f5; font-weight: bold; font-size: 12px; "
-            "padding: 0 12px; background: transparent;"
-        )
-        toolbar.addWidget(self.auth_status_label)
+        # Кнопка входа — постоянная, чтобы всегда можно было сменить пользователя
+        self.login_action = QAction("Войти", self)
+        self.login_action.triggered.connect(self._try_login)
+        toolbar.addAction(self.login_action)
 
         if self.auth_service is None:
             self.auth_password_edit.setEnabled(False)
             self.auth_password_edit.setToolTip("Авторизация недоступна")
+            self.login_action.setEnabled(False)
 
     def _build_ui(self):
         self.info_panel = InfoPanel(
@@ -178,6 +186,20 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(splitter)
 
         self.statusBar().showMessage("Готово")
+
+        # Шестерёнка настроек составов — правый нижний угол, видна только админам
+        self.admin_gear_btn = QToolButton()
+        self.admin_gear_btn.setText("\u2699")
+        self.admin_gear_btn.setToolTip("Настройка составов (администратор)")
+        self.admin_gear_btn.setCursor(Qt.PointingHandCursor)
+        self.admin_gear_btn.setStyleSheet(
+            "QToolButton { color: #dce8f5; background: transparent; border: none;"
+            " font-size: 16px; padding: 0 8px; min-height: 18px; }"
+            "QToolButton:hover { color: #ffffff; background: #2c5282; }"
+        )
+        self.admin_gear_btn.clicked.connect(self._on_open_team_settings)
+        self.admin_gear_btn.setVisible(False)
+        self.statusBar().addPermanentWidget(self.admin_gear_btn)
 
     def _connect_signals(self):
         self.info_panel.data_changed.connect(self.refresh_preview)
@@ -292,9 +314,36 @@ class MainWindow(QMainWindow):
         self.save_docx_action.setEnabled(True)
         self.save_docx_action.setToolTip("")
 
+        # Показать шестерёнку, если пользователь — администратор
+        self._update_admin_gear()
+
         self.statusBar().showMessage(
             "Авторизация выполнена: {0}".format(self.current_user)
         )
+
+    def _update_admin_gear(self):
+        """Шестерёнка видна только администраторам (таблица ADMINS архивной БД)."""
+        visible = False
+        if self.team_service and self.current_user:
+            try:
+                visible = self.team_service.is_admin(self.current_user)
+            except Exception:
+                visible = False
+        self.admin_gear_btn.setVisible(visible)
+
+    def _on_open_team_settings(self):
+        if self.team_service is None:
+            return
+
+        from app.ui.dialogs.team_settings_dialog import TeamSettingsDialog
+
+        main_db = self.auth_service.db if self.auth_service else None
+        dialog = TeamSettingsDialog(
+            team_service=self.team_service,
+            main_db=main_db,
+            parent=self,
+        )
+        dialog.exec_()
 
     def _mark_auth_error(self, message):
         """Подсветить поле пароля красной рамкой и показать сообщение."""
@@ -325,7 +374,15 @@ class MainWindow(QMainWindow):
             return
 
         try:
-            records = self.decree_archive.list_decrees(self.current_user)
+            usernames = [self.current_user]
+            if self.team_service:
+                try:
+                    usernames = self.team_service.get_group_usernames(
+                        self.current_user
+                    )
+                except Exception:
+                    usernames = [self.current_user]
+            records = self.decree_archive.list_decrees(usernames)
         except Exception as exc:
             QMessageBox.critical(
                 self,
@@ -376,7 +433,7 @@ class MainWindow(QMainWindow):
         self.preview_panel.update_preview(self.state)
 
     def _on_archive_record_chosen(self, decree_id):
-        """Кнопка «Выбрать»: обновить дело из БД и наложить архивные данные."""
+        """Кнопка «Загрузить по делу\nновые данные»: обновить дело из БД и наложить архивные данные."""
         if self.decree_archive is None:
             return
 

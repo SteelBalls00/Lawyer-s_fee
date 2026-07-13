@@ -85,7 +85,7 @@ class ContextBuilder(object):
             "номер дела": state.case_number.value,
             "дело": state.case_number.value,
             "уид": state.judicial_uid.value,
-            "дата постановления": state.decree_date.value,
+            "дата постановления": state.decree_date.value or state.verdict_date.value,
             "судья": state.judge.value,
             "секретарь": state.secretary.value,
             "гос обвинитель": state.prosecutor.value,
@@ -129,6 +129,7 @@ class ContextBuilder(object):
             "его/её пол": self._gender_word(defendant_sex, "его", "её"),
             "ему/ей пол": self._gender_word(defendant_sex, "ему", "ей"),
             "него/неё пол": self._gender_word(defendant_sex, "него", "неё"),
+            "заявил/заявила пол": self._gender_word(defendant_sex, "заявил", "заявила"),
             "возражал пол": self._gender_word(defendant_sex, "возражал", "возражала"),
             "он/она пол": self._gender_word(defendant_sex, "он", "она"),
             "трудоспособным пол": self._gender_word(defendant_sex, "трудоспособным", "трудоспособной"),
@@ -347,7 +348,8 @@ class ContextBuilder(object):
             for item in state.services
             if item.service_name == "Участие в судебном заседании"
         ]
-        return format_dates_list_numeric(dates)
+        text = format_dates_list_numeric(dates)
+        return text + "." if text else ""
 
     def _build_services_text(self, state):
         lines = []
@@ -359,7 +361,7 @@ class ContextBuilder(object):
             if item.service_date is None:
                 date_text = ""
             else:
-                date_text = format_russian_date(item.service_date)
+                date_text = item.service_date.strftime("%d.%m.%Y")
 
             service_name = item.service_name or ""
 
@@ -575,6 +577,13 @@ class ContextBuilder(object):
                 "Уголовное дело в отношении {подсудимый рп ио} рассмотрено судом в особом порядке, "
                 "предусмотренном главой 40 УПК РФ. При таких обстоятельствах, в соответствии с ч.10 ст.316 "
                 "УПК РФ {он/она пол} подлежит освобождению от взыскания с {него/неё пол} процессуальных издержек."
+            )
+
+        elif mode == "ejection_of_the_defender":
+            return (
+                "Поскольку {подсудимый ио} {заявил/заявила пол} в судебном заседании отказ от защитника, который не был принят судом, "
+                "{он/она пол} подлежит освобождению от взыскания с {него/неё пол} процессуальных издержек"
+                ""
             )
 
         elif mode == "not_considered":

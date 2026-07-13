@@ -58,7 +58,7 @@ class CaseController(object):
         if verdict_date_text:
             self.state.decree_date.set_db_value(verdict_date_text)
         else:
-            self.state.decree_date.set_db_value(date.today().strftime("%d.%m.%Y"))
+            self.state.decree_date.set_db_value("")
 
         # Для материалов — заполняем sub_type и автоматически выставляем
         # ходатайство/представление по первой букве номера материала
